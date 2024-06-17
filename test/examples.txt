@@ -1,0 +1,43 @@
+[Markdown]
+```js
+import mdit from 'markdonw-it'
+mdit().render('A cat.')
+```
+[HTML]
+<pre><code class="language-js">import mdit from 'markdonw-it'
+mdit().render('A cat.')
+</code></pre>
+
+
+[Markdown]
+```samp
+$ pwd
+/home/User
+```
+[HTML]
+<pre><samp>$ pwd
+/home/User
+</samp></pre>
+
+
+[Markdown]
+```shell
+$ pwd
+/home/User
+```
+[HTML]
+<pre><samp class="language-shell">$ pwd
+/home/User
+</samp></pre>
+
+
+[Markdown]
+```console
+$ pwd
+/home/User
+```
+[HTML]
+<pre><samp class="language-console">$ pwd
+/home/User
+</samp></pre>
+
