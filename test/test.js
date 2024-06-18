@@ -5,13 +5,13 @@ import mdit from 'markdown-it'
 
 import mditFigureWithPCaption from '@peaceroad/markdown-it-figure-with-p-caption'
 import mditRendererFence from '../index.js'
-import attrs from 'markdown-it-attrs'
+import mditAttrs from 'markdown-it-attrs'
 import highlightjs from 'highlight.js'
 
 
 let opt = {}
 
-const md = mdit({ html: true }).use(mditRendererFence).use(attrs)
+const md = mdit({ html: true }).use(mditRendererFence).use(mditAttrs)
 const mdHighlightJs = mdit({
   html: true,
   langPrefix: 'language-',
@@ -24,7 +24,7 @@ const mdHighlightJs = mdit({
     }
     return ''
   }
-}).use(mditRendererFence, opt).use(attrs)
+}).use(mditRendererFence, opt).use(mditAttrs)
 
 
 let __dirname = path.dirname(new URL(import.meta.url).pathname)

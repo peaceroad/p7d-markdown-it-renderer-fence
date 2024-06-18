@@ -1,56 +1,16 @@
-const fenceStartTag = (token, tagName, opt) => {
-  let idAttr = [], classAttr = [], dataAttrs = [], styleAttr = [], otherAttrs = []
-  let hasClass = false
-  if (token.attrs) {
-    //console.log('start: ' +token.attrs)
-    for (let attr of token.attrs) {
-      if (attr[0] === 'id') {
-        idAttr.push(attr)
-      } else if (attr[0] === 'class') {
-        hasClass = true
-        classAttr.push([attr[0], opt.langPrefix + token.info + ' ' + attr[1]])
-      } else if (attr[0].startsWith('data-')) {
-        dataAttrs.push(attr)
-      } else if (attr[0] === 'style') {
-        styleAttr.push(attr)
-      } else {
-        otherAttrs.push(attr)
-      }
-    }
-  }
-  if (!hasClass) classAttr.push(['class', opt.langPrefix + token.info])
-  let orderedAttrs = [...idAttr, ...classAttr, ...dataAttrs, ...styleAttr, ...otherAttrs]
+const fenceStartTag = (tagName, sAttr) => {
+  let orderedAttrs = [...sAttr.id, ...sAttr.clas, ...sAttr.data, ...sAttr.style, ...sAttr.other]
   //console.log(orderedAttrs)
   let tag = '<' + tagName
   for (let attr of orderedAttrs) {
-    tag += ' ' + attr[0] + '="' + attr[1] + '"'
+    if (attr[0]) tag += ' ' + attr[0] + '="' + attr[1] + '"'
   }
   return tag + '>'
-};
+}
 
 const splitFenceBlockToLines = (token, content) => {
   const br = content.match(/\r?\n/)
   const lines = content.split(/r?\n/)
-  let hasCodeLineStart = false
-  let styleIndex = -1
-  let dataIndex = -1
-  let setNumber = -1
-  if (token.attrs) {
-    token.attrs.forEach((attr, i) => {
-      if (attr[i][0] === 'style') styleIndex = i
-      hasCodeLineStart = (/^(?:(?:data-)?pre-)?start$/.test(attr[0]))
-      if (hasCodeLineStart) dataIndex = i
-    })
-  }
-  if (!hasCodeLineStart && setNumber === -1) return content
-  token.attrs[dataIndex][0] = 'data-pre-start'
-  setNumber = token.attrs[dataIndex][1]
-
-  if (styleIndex === -1) {
-    token.attrs.push(['style', 'counter-set:pre-line-number ' + setNumber + ';'])
-  } else {
-    token.attrs[styleIndex][1] = token.attrs[styleIndex][1].replace(/;?$/, '; counter-set:pre-line-number ' + setNumber + ';')
-  }
   lines.map((line, n) => {
     const lastElementTag = line.match(/<(\w+)( +[^>]*?)>[^>]*?(<\/\1>)?[^>]*?$/)
     if (lastElementTag && !lastElementTag[3]) {
@@ -66,43 +26,109 @@ const splitFenceBlockToLines = (token, content) => {
   return lines.join(br)
 }
 
+const setInfoAttr = (infoAttr) => {
+  let arr = []
+  let attrSets = infoAttr.trim().split(/ +/)
+  for (let attrSet of attrSets) {
+    const str = attrSet.match(/^(?:([.#])(.+)|(.+?)(?:=("')?(.*?)\1?)?)$/)
+    if (str) {
+      console.log(str)
+      if (str[1] === '.') str[1] = 'class'
+      if (str[1] === '#') str[1] = 'id'
+      if (str[3]) {
+        str[1] = str[3]
+        str[2] = str[5] ? str[5].replace(/^['"]/, '').replace(/['"]$/, '') : ''
+      }
+      arr.push([str[1], str[2]])
+    }
+  }
+  return arr
+}
+
 const getFenceHtml = (tokens, idx, env, slf, md, options) => {
   const opt = {
     setHighlight: true,
     setLineNumber: true,
     langPrefix: 'language-',
     highlight: null,
+    setDocExample: true,
   }
   if (options) Object.assign(opt, options)
 
   const token = tokens[idx]
   //console.log(token)
   let content = token.content
-  if (md.options.highlight) {
-    if (token.info !== 'samp' && opt.setHighlight) {
-      content = md.options.highlight(token.content, token.info)
+  const infoAttr = token.info.trim().match(/{(.*)}$/)
+  if(infoAttr) {
+    if (token.attrs) {
+      token.attrs = [...token.attrs, ...setInfoAttr(infoAttr[1])]
+    } else {
+      token.attrs = setInfoAttr(infoAttr[1])
+    }
+  }
+  //console.log(token.attrs)
+
+  let lang = token.info.trim().replace(/ *({.*)?$/, '')
+  const langClass = lang && token.info !== 'samp' ? opt.langPrefix + lang : ''
+  let sAttr = {id: [], clas: [], data: [], style: [], other: []}
+  let hasPreLineStart = false
+  let preLineStart = -1
+  if (token.attrs) {
+    //console.log('start: ' +token.attrs)
+    for (let attr of token.attrs) {
+      if (attr[0] === 'id') {
+        sAttr.id.push(attr)
+      } else if (attr[0] === 'class') {
+        const sAttrClass = langClass ? langClass + ' ' + attr[1] : attr[1]
+        const hasLang = attr[1].match(new RegExp('(?:^| )' + opt.langPrefix + '(.*)(?: |$)'))
+        if (hasLang) lang = hasLang[1]
+        sAttr.clas.push([attr[0], sAttrClass])
+      } else if (attr[0].startsWith('data-') || /^(?:pre-)?start$/.test(attr[0])) {
+        if (/^(?:(?:data-)?pre-)?start$/.test(attr[0])) {
+          hasPreLineStart = true
+          preLineStart = attr[1]
+          attr[0] = 'data-pre-start'
+        }
+        sAttr.data.push(attr)
+      } else if (attr[0] === 'style') {
+        sAttr.style.push(attr)
+      } else {
+        sAttr.other.push(attr)
+      }
+    }
+  }
+  if (sAttr.clas.length === 0 && langClass !== '') sAttr.clas.push(['class', langClass])
+  if (hasPreLineStart && preLineStart !== -1) {
+    if (sAttr.style.length === 0) {
+      sAttr.style.push(['style', 'counter-set:pre-line-number ' + preLineStart + ';'])
+    } else {
+      sAttr.style[0][1] = sAttr.style[0][1].replace(/;?$/, '; counter-set:pre-line-number ' + preLineStart + ';')
+    }
+  }
+  //console.log(JSON.stringify(sAttr))
+
+  if (opt.setHighlight && md.options.highlight) {
+    if (lang && lang !== 'samp' ) {
+      content = md.options.highlight(token.content, lang)
     } else {
       content = md.utils.escapeHtml(token.content)
     }
   } else {
     content = md.utils.escapeHtml(token.content)
   }
-  if (opt.setLineNumber) {
+  if (opt.setLineNumber && hasPreLineStart) {
     content = splitFenceBlockToLines(token, content)
   }
 
   let fenceHtml = '<pre>'
-  if (token.info === 'samp') {
-    fenceHtml += '<samp>'
-  } else if (token.info === 'shell' || token.info === 'console') {
-    fenceHtml += fenceStartTag(token, 'samp', opt);
+  let isSamp = /^(?:samp|shell|console)$/.test(lang)
+  if (isSamp) {
+    fenceHtml += fenceStartTag('samp', sAttr)
   } else {
-    fenceHtml += fenceStartTag(token, 'code', opt);
+    fenceHtml += fenceStartTag('code', sAttr)
   }
   fenceHtml += content
-  if (token.info === 'samp') {
-    fenceHtml += '</samp>'
-  } else if (token.info === 'shell' || token.info === 'console') {
+  if (isSamp) {
     fenceHtml += '</samp>'
   } else {
     fenceHtml += '</code>'

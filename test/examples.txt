@@ -41,3 +41,90 @@ $ pwd
 /home/User
 </samp></pre>
 
+
+[Markdown]
+``` 
+console.log('A test.')
+```
+[HTML]
+<pre><code>console.log('A test.')
+</code></pre>
+
+
+[Markdown]
+``` {}
+console.log('A test.')
+```
+[HTML]
+<pre><code>console.log('A test.')
+</code></pre>
+
+[Markdown]
+```js {}
+console.log('A test.')
+```
+[HTML]
+<pre><code class="language-js">console.log('A test.')
+</code></pre>
+
+
+[Markdown]
+```js {} 
+console.log('A test.')
+```
+[HTML]
+<pre><code class="language-js">console.log('A test.')
+</code></pre>
+
+[Markdown]
+```js {.style #id}
+console.log('A test.')
+```
+[HTML]
+<pre><code id="id" class="language-js style">console.log('A test.')
+</code></pre>
+
+[Markdown]
+```js {.style} 
+console.log('A test.')
+```
+[HTML]
+<pre><code class="language-js style">console.log('A test.')
+</code></pre>
+
+
+[Markdown]
+~~~ {}
+console.log('A test.')
+~~~
+[HTML]
+<pre><code>console.log('A test.')
+</code></pre>
+
+
+[Markdown]
+~~~js {}
+console.log('A test.')
+~~~
+[HTML]
+<pre><code class="language-js">console.log('A test.')
+</code></pre>
+
+
+[Markdown]
+```{.language-js}
+console.log('A test.')
+```
+[HTML]
+<pre><code class="language-js">console.log('A test.')
+</code></pre>
+
+
+[Markdown]
+``` js {start="3" aria-label="LABEL"} 
+console.log('A test.')
+```
+[HTML]
+<pre><code class="language-js" data-pre-start="3" style="counter-set:pre-line-number 3;" aria-label="LABEL"><span class="pre-line">console.log('A test.')</span>
+</code></pre>
+
