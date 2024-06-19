@@ -51,7 +51,6 @@ const getFenceHtml = (tokens, idx, env, slf, md, options) => {
     setLineNumber: true,
     langPrefix: 'language-',
     highlight: null,
-    setDocExample: true,
   }
   if (options) Object.assign(opt, options)
 
@@ -60,11 +59,7 @@ const getFenceHtml = (tokens, idx, env, slf, md, options) => {
   let content = token.content
   const infoAttr = token.info.trim().match(/{(.*)}$/)
   if(infoAttr) {
-    if (token.attrs) {
-      token.attrs = [...token.attrs, ...setInfoAttr(infoAttr[1])]
-    } else {
-      token.attrs = setInfoAttr(infoAttr[1])
-    }
+    token.attrs = token.attrs ? [...token.attrs, ...setInfoAttr(infoAttr[1])] : setInfoAttr(infoAttr[1])
   }
   //console.log(token.attrs)
 
