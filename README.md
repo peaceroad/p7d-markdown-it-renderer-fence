@@ -22,7 +22,7 @@ const md = mdit({
                   return highlightjs.highlight(str, { language: lang }).value
                } catch (__) {}
              }
-             return ''
+             return str
            }).use(mditAttrs).use(mditRendererFence)
 
 

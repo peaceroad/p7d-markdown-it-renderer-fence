@@ -1,3 +1,5 @@
+//import highlightjs from 'highlight.js'
+
 const fenceStartTag = (tagName, sAttr) => {
   let orderedAttrs = [...sAttr.id, ...sAttr.clas, ...sAttr.data, ...sAttr.style, ...sAttr.other]
   //console.log(orderedAttrs)
@@ -32,7 +34,7 @@ const setInfoAttr = (infoAttr) => {
   for (let attrSet of attrSets) {
     const str = attrSet.match(/^(?:([.#])(.+)|(.+?)(?:=("')?(.*?)\1?)?)$/)
     if (str) {
-      console.log(str)
+      //console.log(str)
       if (str[1] === '.') str[1] = 'class'
       if (str[1] === '#') str[1] = 'id'
       if (str[3]) {
@@ -55,13 +57,11 @@ const getFenceHtml = (tokens, idx, env, slf, md, options) => {
   if (options) Object.assign(opt, options)
 
   const token = tokens[idx]
-  //console.log(token)
   let content = token.content
   const infoAttr = token.info.trim().match(/{(.*)}$/)
   if(infoAttr) {
     token.attrs = token.attrs ? [...token.attrs, ...setInfoAttr(infoAttr[1])] : setInfoAttr(infoAttr[1])
   }
-  //console.log(token.attrs)
 
   let lang = token.info.trim().replace(/ *({.*)?$/, '')
   const langClass = lang && token.info !== 'samp' ? opt.langPrefix + lang : ''
@@ -101,10 +101,14 @@ const getFenceHtml = (tokens, idx, env, slf, md, options) => {
     }
   }
   //console.log(JSON.stringify(sAttr))
-
   if (opt.setHighlight && md.options.highlight) {
     if (lang && lang !== 'samp' ) {
-      content = md.options.highlight(token.content, lang)
+      content = md.options.highlight(content, lang)
+      /*
+      try {
+        content = highlightjs.highlight(token.content, {language: lang}).value
+      } catch (__) {}
+      */
     } else {
       content = md.utils.escapeHtml(token.content)
     }
@@ -122,6 +126,7 @@ const getFenceHtml = (tokens, idx, env, slf, md, options) => {
   } else {
     fenceHtml += fenceStartTag('code', sAttr)
   }
+
   fenceHtml += content
   if (isSamp) {
     fenceHtml += '</samp>'

@@ -163,3 +163,13 @@ console.log('A test.')
 [HTML]
 <pre><code class="language-js"><span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;A test.&#x27;</span>)
 </code></pre>
+
+[Markdown]
+```conf
+[Service]
+Environment="OLLAMA_HOST=0.0.0.0"
+```
+[HTML]
+<pre><code class="language-conf">[Service]
+Environment="OLLAMA_HOST=0.0.0.0"
+</code></pre>
