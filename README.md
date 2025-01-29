@@ -94,7 +94,6 @@ CSS example: <https://codepen.io/peaceroad/pen/qBGpYGK>
 Add `em-lines` or `emphasize-lines` attribute by by adding attributes used markdown-it-attrs.
 
 ~~~md
-```js {em-lines="1,3-5"}
 ``` {em-lines="2,4-5"}
 1
 2
