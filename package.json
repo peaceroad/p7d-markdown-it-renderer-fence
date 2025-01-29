@@ -1,6 +1,6 @@
 {
   "name": "@peaceroad/markdown-it-renderer-fence",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "In code blocks, the `<samp>` tag is used with the language keywords `samp`, `shell`, and `console`, and provides an option to display line numbers.",
   "main": "index.js",
   "type": "module",
@@ -11,9 +11,9 @@
   "repository": "https://github.com/peaceroad/p7d-markdown-it-renderer-fence",
   "license": "MIT",
   "devDependencies": {
-    "@peaceroad/markdown-it-figure-with-p-caption": "^0.6.1",
+    "@peaceroad/markdown-it-figure-with-p-caption": "^0.10.1",
     "markdown-it": "^14.1.0",
-    "markdown-it-attrs": "^4.1.6",
-    "highlight.js": "^11.9.0"
+    "markdown-it-attrs": "^4.2.0",
+    "highlight.js": "^11.10.0"
   }
 }

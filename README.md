@@ -68,12 +68,12 @@ $ pwd
 ~~~
 
 
-## Add span elements to display line number, and style attribute.
+## Add span elements to display line number.
 
 Add `start` or `data-pre-start` attribute by adding attributes used markdown-it-attrs.
 
 ~~~md
-```js {.style start="1"}
+```js {start="1"}
 import mdit from 'markdonw-it'
 const md = mdit()
 md.render('Nyaan')
@@ -81,10 +81,37 @@ md.render('Nyaan')
 ~~~
 
 ~~~html
-<pre><code class="language-js style" data-pre-start="1" style="counter-set:pre-line-number 1;"><span class="pre-line"><span class="hljs-keyword">import</span> mdit <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;markdonw-it&#x27;</span></span>
+<pre><code class="language-js" data-pre-start="1" style="counter-set:pre-line-number 1;"><span class="pre-line"><span class="hljs-keyword">import</span> mdit <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;markdonw-it&#x27;</span></span>
 <span class="pre-line"><span class="hljs-keyword">const</span> md = <span class="hljs-title function_">mdit</span>()</span>
 <span class="pre-line">md.<span class="hljs-title function_">render</span>(<span class="hljs-string">&#x27;Nyaan&#x27;</span>)</span>
 </code></pre>
 ~~~
 
 CSS example: <https://codepen.io/peaceroad/pen/qBGpYGK>
+
+## Add span elements to add background color to the row ranges.
+
+Add `em-lines` or `emphasize-lines` attribute by by adding attributes used markdown-it-attrs.
+
+~~~md
+```js {em-lines="1,3-5"}
+``` {em-lines="2,4-5"}
+1
+2
+3
+4
+5
+6
+```
+~~~
+
+~~~html
+[HTML]
+<pre><code>1
+<span class="pre-lines-emphasis">2
+</span>3
+<span class="pre-lines-emphasis">4
+5
+</span>6
+</code></pre>
+~~~

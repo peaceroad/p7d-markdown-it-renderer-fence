@@ -10,20 +10,48 @@ const fenceStartTag = (tagName, sAttr) => {
   return tag + '>'
 }
 
-const splitFenceBlockToLines = (token, content) => {
+const parseEmphasizeLines = (attrValue) => {
+  const lines = []
+  let s, e
+  attrValue.split(',').forEach(range => {
+    if (range.includes('-')) {
+      [s, e] = range.split('-').map(n => parseInt(n.trim(), 10));
+      lines.push([s, e]);
+    } else {
+      s = parseInt(range.trim(), 10)
+      lines.push([s, s])
+    }
+  });
+  return lines;
+}
+
+const splitFenceBlockToLines = (content, emphasizeLines, opt, hasPreLineStart) => {
   const br = content.match(/\r?\n/)
-  const lines = content.split(/r?\n/)
+  const lines = content.split(/\r?\n/)
   lines.map((line, n) => {
-    const lastElementTag = line.match(/<(\w+)( +[^>]*?)>[^>]*?(<\/\1>)?[^>]*?$/)
-    if (lastElementTag && !lastElementTag[3]) {
-      line += '</span>'
-      if (n < lines.length - 2) {
-        lines[n + 1] = `<${lastElementTag[1]}${lastElementTag[2]}>` + lines[n + 1]
+    if (opt.setLineNumber && hasPreLineStart) {
+      const lastElementTag = line.match(/<(\w+)( +[^>]*?)>[^>]*?(<\/\1>)?[^>]*?$/)
+      if (lastElementTag && !lastElementTag[3]) {
+        line += '</span>'
+        if (n < lines.length - 2) {
+          lines[n + 1] = `<${lastElementTag[1]}${lastElementTag[2]}>` + lines[n + 1]
+        }
+      }
+      if (n < lines.length - 1) {
+        lines[n] = '<span class="pre-line">' + line + '</span>'
       }
     }
-    if (n < lines.length - 1) {
-      lines[n] = '<span class="pre-line">' + line + '</span>'
+
+    if (opt.setEmphasizeLines && emphasizeLines.length > 0) {
+      if (emphasizeLines[0][0] === n + 1) {
+        lines[n] = `<span class="pre-lines-emphasis">${lines[n]}`
+      }
+      if (emphasizeLines[0][1] === n) {
+        lines[n] = '</span>' + lines[n]
+        emphasizeLines.shift()
+      }
     }
+
   })
   return lines.join(br)
 }
@@ -51,6 +79,7 @@ const getFenceHtml = (tokens, idx, env, slf, md, options) => {
   const opt = {
     setHighlight: true,
     setLineNumber: true,
+    setEmphasizeLines: true,
     langPrefix: 'language-',
     highlight: null,
   }
@@ -68,6 +97,7 @@ const getFenceHtml = (tokens, idx, env, slf, md, options) => {
   let sAttr = {id: [], clas: [], data: [], style: [], other: []}
   let hasPreLineStart = false
   let preLineStart = -1
+  let emphasizeLines = []
   if (token.attrs) {
     //console.log('start: ' +token.attrs)
     for (let attr of token.attrs) {
@@ -85,6 +115,8 @@ const getFenceHtml = (tokens, idx, env, slf, md, options) => {
           attr[0] = 'data-pre-start'
         }
         sAttr.data.push(attr)
+      } else if (/^em(?:phasize)?-lines$/.test(attr[0])) {
+        emphasizeLines = parseEmphasizeLines(attr[1])
       } else if (attr[0] === 'style') {
         sAttr.style.push(attr)
       } else {
@@ -115,8 +147,8 @@ const getFenceHtml = (tokens, idx, env, slf, md, options) => {
   } else {
     content = md.utils.escapeHtml(token.content)
   }
-  if (opt.setLineNumber && hasPreLineStart) {
-    content = splitFenceBlockToLines(token, content)
+  if (opt.setLineNumber || opt.setEmphasizeLines) {
+    content = splitFenceBlockToLines(content, emphasizeLines, opt, hasPreLineStart)
   }
 
   let fenceHtml = '<pre>'
