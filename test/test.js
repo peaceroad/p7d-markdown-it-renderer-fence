@@ -26,6 +26,7 @@ const mdHighlightJs = mdit({
   }
 }).use(mditRendererFence, opt).use(mditAttrs)
 const mdLinesEmphasis = mdit({ html: true }).use(mditRendererFence).use(mditAttrs)
+const mdLIneEndSpan = mdit({ html: true }).use(mditRendererFence, {setLineEndSpan: 8}).use(mditAttrs)
 
 let __dirname = path.dirname(new URL(import.meta.url).pathname)
 const isWindows = (process.platform === 'win32')
@@ -37,6 +38,7 @@ const testData = {
   noOption: __dirname + path.sep +  'examples.txt',
   highlightjs: __dirname + path.sep +  'examples-highlightjs.txt',
   linesEmphasis: __dirname + path.sep +  'example-lines-emphasis.txt',
+  lineEndSpan: __dirname + path.sep +  'example-line-end-span.txt',
 }
 
 const getTestData = (pat) => {
@@ -88,7 +90,7 @@ const runTest = (process, pat, pass, testId) => {
 
   while(n <= end) {
     if (!ms[n]
-    //|| n != 2
+    //|| n != 14
     ) {
       n++
       continue
@@ -116,5 +118,6 @@ let pass = true
 pass = runTest(md, testData.noOption, pass)
 pass = runTest(mdHighlightJs, testData.highlightjs, pass)
 pass = runTest(mdLinesEmphasis, testData.linesEmphasis, pass)
+pass = runTest(mdLIneEndSpan, testData.lineEndSpan, pass)
 
 if (pass) console.log('Passed all test.')

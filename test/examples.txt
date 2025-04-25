@@ -81,7 +81,7 @@ console.log('A test.')
 console.log('A test.')
 ```
 [HTML]
-<pre><code id="id" class="language-js style">console.log('A test.')
+<pre><code class="language-js style" id="id">console.log('A test.')
 </code></pre>
 
 [Markdown]

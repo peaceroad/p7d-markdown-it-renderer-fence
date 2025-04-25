@@ -106,7 +106,7 @@ Add `em-lines` or `emphasize-lines` attribute by by adding attributes used markd
 
 ~~~html
 [HTML]
-<pre><code>1
+<pre><code data-pre-emphasis="2,4-5">1
 <span class="pre-lines-emphasis">2
 </span>3
 <span class="pre-lines-emphasis">4
@@ -114,3 +114,17 @@ Add `em-lines` or `emphasize-lines` attribute by by adding attributes used markd
 </span>6
 </code></pre>
 ~~~
+
+
+## Options
+
+The following options can be specified when initializing the plugin:
+
+- attrsOrder: default ['class','id','data-*','style'] — order of attributes in output; wildcards supported.
+- setHighlight: default true — enable calling highlight function (e.g., highlight.js).
+- setLineNumber: default true — wrap lines in spans for line numbers.
+- setEmphasizeLines: default true — enable emphasis based on emphasize-lines attribute.
+- setLineEndSpan: default 0 — character count threshold to append end-of-line span (0 to disable).
+- lineEndSpanClass: default 'pre-lineend-spacer' — CSS class for end-of-line span.
+- sampLang: default 'shell,console' — comma-separated list of languages (in addition to 'samp') that will be rendered using `<samp>`.
+- langPrefix: default md.options.langPrefix || 'language-' — prefix for language class on code blocks.

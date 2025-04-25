@@ -1,0 +1,55 @@
+[Markdown]
+```
+1234567890
+2
+1234567890
+4
+1234567890
+6
+```
+[HTML]
+<pre><code>1234567890<span class="pre-lineend-spacer"></span>
+2
+1234567890<span class="pre-lineend-spacer"></span>
+4
+1234567890<span class="pre-lineend-spacer"></span>
+6
+</code></pre>
+
+
+[Markdown]
+``` {em-lines="3"}
+1234567890
+2
+1234567890
+4
+1234567890
+6
+```
+[HTML]
+<pre><code data-pre-emphasis="3">1234567890<span class="pre-lineend-spacer"></span>
+2
+<span class="pre-lines-emphasis">1234567890<span class="pre-lineend-spacer"></span>
+</span>4
+1234567890<span class="pre-lineend-spacer"></span>
+6
+</code></pre>
+
+
+[Markdown]
+``` {em-lines="3" start="4"}
+1234567890
+2
+1234567890
+4
+1234567890
+6
+```
+[HTML]
+<pre><code data-pre-emphasis="3" data-pre-start="4" style="counter-set:pre-line-number 4;"><span class="pre-line">1234567890<span class="pre-lineend-spacer"></span></span>
+<span class="pre-line">2</span>
+<span class="pre-lines-emphasis"><span class="pre-line">1234567890<span class="pre-lineend-spacer"></span></span>
+</span><span class="pre-line">4</span>
+<span class="pre-line">1234567890<span class="pre-lineend-spacer"></span></span>
+<span class="pre-line">6</span>
+</code></pre>
