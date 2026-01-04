@@ -263,7 +263,7 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
   if (preWrapValue !== undefined) {
     const escapeHtml = md.utils.escapeHtml
     preAttrs = ' data-pre-wrap="' + escapeHtml(preWrapValue) + '"'
-    if (wrapEnabled) {
+    if (wrapEnabled && opt.setPreWrapStyle !== false) {
       preAttrs += ' style="' + escapeHtml(preWrapStyle) + '"'
     }
   }
@@ -299,6 +299,7 @@ const mditRendererFence = (md, option) => {
     setEmphasizeLines: true,
     setLineEndSpan: 0,
     lineEndSpanClass: 'pre-lineend-spacer',
+    setPreWrapStyle: true,
     sampLang: 'shell,console',
     langPrefix: md.options.langPrefix || 'language-',
   }
