@@ -171,5 +171,34 @@ Environment="OLLAMA_HOST=0.0.0.0"
 ```
 [HTML]
 <pre><code class="language-conf">[Service]
-Environment="OLLAMA_HOST=0.0.0.0"
+Environment=&quot;OLLAMA_HOST=0.0.0.0&quot;
+</code></pre>
+
+
+[Markdown]
+```js
+const func = () => {
+  console.log('Hello, World!')
+}
+func()
+```
+[HTML]
+<pre><code class="language-js"><span class="hljs-keyword">const</span> <span class="hljs-title function_">func</span> = (<span class="hljs-params"></span>) =&gt; {
+  <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;Hello, World!&#x27;</span>)
+}
+<span class="hljs-title function_">func</span>()
+</code></pre>
+
+[Markdown]
+```
+const func = () => {
+  console.log('Hello, World!')
+}
+func()
+```
+[HTML]
+<pre><code>const func = () =&gt; {
+  console.log('Hello, World!')
+}
+func()
 </code></pre>

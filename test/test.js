@@ -22,7 +22,7 @@ const mdHighlightJs = mdit({
         return highlightjs.highlight(str, { language: lang }).value
       } catch (__) {}
     }
-    return str
+    return md.utils.escapeHtml(str)
   }
 }).use(mditRendererFence, opt).use(mditAttrs)
 const mdLinesEmphasis = mdit({ html: true }).use(mditRendererFence).use(mditAttrs)
