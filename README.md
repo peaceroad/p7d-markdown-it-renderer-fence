@@ -115,6 +115,21 @@ Add `em-lines` or `emphasize-lines` attribute by by adding attributes used markd
 </code></pre>
 ~~~
 
+## Enable pre-wrap for code blocks
+
+Add `wrap` or `pre-wrap` attribute (optionally `="true"`) by adding attributes used markdown-it-attrs.
+
+~~~md
+```js {wrap}
+const longLine = 'This line is long but wraps.'
+```
+~~~
+
+~~~html
+<pre><code class="language-js" data-pre-wrap="true" style="white-space: pre-wrap;">const longLine = 'This line is long but wraps.'
+</code></pre>
+~~~
+
 
 ## Options
 
