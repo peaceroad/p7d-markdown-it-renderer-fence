@@ -7,7 +7,7 @@ const preLineTag = '<span class="pre-line">'
 const emphOpenTag = '<span class="pre-lines-emphasis">'
 const closeTag = '</span>'
 const closeTagLen = closeTag.length
-const preWrapStyleReg = /(?:^|;)\s*white-space\s*:\s*pre-wrap\s*(?:;|$)/i
+const preWrapStyle = 'white-space: pre-wrap; overflow-wrap: anywhere;'
 
 const appendStyleValue = (style, addition) => {
   if (!addition) return style
@@ -154,20 +154,19 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
 
   let startNumber = -1
   let emphasizeLines = []
+  let wrapEnabled = false
+  let preWrapValue
 
   if (token.attrs) {
     const newAttrs = []
     let dataPreStartIndex = -1
     let dataPreEmphasisIndex = -1
-    let dataPreWrapIndex = -1
     let styleIndex = -1
     let startValue
     let emphasisValue
     let styleValue
     let sawStartAttr = false
     let sawEmphasisAttr = false
-    let sawWrapAttr = false
-    let wrapEnabled = false
     const appendOrder = []
 
     for (const attr of token.attrs) {
@@ -217,18 +216,13 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
           }
           break
         case 'data-pre-wrap':
-          dataPreWrapIndex = newAttrs.length
-          newAttrs.push(attr)
+          preWrapValue = val
           if (val === '' || val === 'true') wrapEnabled = true
           break
         case 'wrap':
         case 'pre-wrap':
           if (val === '' || val === 'true') {
             wrapEnabled = true
-            if (!sawWrapAttr) {
-              appendOrder.push('wrap')
-              sawWrapAttr = true
-            }
           }
           break
         default:
@@ -242,9 +236,6 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
     if (emphasisValue !== undefined && dataPreEmphasisIndex >= 0) {
       newAttrs[dataPreEmphasisIndex][1] = emphasisValue
     }
-    if (wrapEnabled && dataPreWrapIndex >= 0) {
-      newAttrs[dataPreWrapIndex][1] = 'true'
-    }
     for (const kind of appendOrder) {
       if (kind === 'start') {
         if (dataPreStartIndex === -1 && startValue !== undefined) {
@@ -254,14 +245,7 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
         if (dataPreEmphasisIndex === -1 && emphasisValue !== undefined) {
           newAttrs.push(['data-pre-emphasis', emphasisValue])
         }
-      } else if (kind === 'wrap') {
-        if (dataPreWrapIndex === -1 && wrapEnabled) {
-          newAttrs.push(['data-pre-wrap', 'true'])
-        }
       }
-    }
-    if (wrapEnabled && (!styleValue || !preWrapStyleReg.test(styleValue))) {
-      styleValue = appendStyleValue(styleValue, 'white-space: pre-wrap;')
     }
     if (startNumber !== -1) {
       styleValue = appendStyleValue(styleValue, 'counter-set:pre-line-number ' + startNumber + ';')
@@ -271,9 +255,18 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
     } else if (styleValue) {
       newAttrs.push(['style', styleValue])
     }
+    if (wrapEnabled) preWrapValue = 'true'
     token.attrs = newAttrs
   }
   orderTokenAttrs(token, opt)
+  let preAttrs = ''
+  if (preWrapValue !== undefined) {
+    const escapeHtml = md.utils.escapeHtml
+    preAttrs = ' data-pre-wrap="' + escapeHtml(preWrapValue) + '"'
+    if (wrapEnabled) {
+      preAttrs += ' style="' + escapeHtml(preWrapStyle) + '"'
+    }
+  }
 
   if (opt.setHighlight && md.options.highlight) {
     if (lang && lang !== 'samp' ) {
@@ -295,7 +288,7 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
   }
 
   const tag = opt._sampReg.test(lang) ? 'samp' : 'code'
-  return `<pre><${tag}${slf.renderAttrs(token)}>${content}</${tag}></pre>\n`
+  return `<pre${preAttrs}><${tag}${slf.renderAttrs(token)}>${content}</${tag}></pre>\n`
 }
 
 const mditRendererFence = (md, option) => {

@@ -134,7 +134,7 @@ console.log('A test.')
 console.log('A test.')
 ```
 [HTML]
-<pre><code data-pre-wrap="true" style="white-space: pre-wrap;">console.log('A test.')
+<pre data-pre-wrap="true" style="white-space: pre-wrap; overflow-wrap: anywhere;"><code>console.log('A test.')
 </code></pre>
 
 
@@ -143,5 +143,5 @@ console.log('A test.')
 console.log('A test.')
 ```
 [HTML]
-<pre><code class="language-js" data-pre-wrap="true" style="color:red; white-space: pre-wrap;">console.log('A test.')
+<pre data-pre-wrap="true" style="white-space: pre-wrap; overflow-wrap: anywhere;"><code class="language-js" style="color:red">console.log('A test.')
 </code></pre>

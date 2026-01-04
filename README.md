@@ -126,7 +126,7 @@ const longLine = 'This line is long but wraps.'
 ~~~
 
 ~~~html
-<pre><code class="language-js" data-pre-wrap="true" style="white-space: pre-wrap;">const longLine = 'This line is long but wraps.'
+<pre data-pre-wrap="true" style="white-space: pre-wrap; overflow-wrap: anywhere;"><code class="language-js">const longLine = 'This line is long but wraps.'
 </code></pre>
 ~~~
 
