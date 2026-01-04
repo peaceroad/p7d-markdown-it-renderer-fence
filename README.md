@@ -17,14 +17,14 @@ import mditRendererFence from '@peaceroad/markdown-it-renderer-fence'
 const md = mdit({
              langPrefix: 'language-',
              highlight: (str, lang) => {
-             if (lang && highlightjs.getLanguage(lang)) {
-               try {
-                  return highlightjs.highlight(str, { language: lang }).value
-               } catch (__) {}
+               if (lang && highlightjs.getLanguage(lang)) {
+                 try {
+                    return highlightjs.highlight(str, { language: lang }).value
+                 } catch (__) {}
+               }
+               return  mdit.utils.escapeHtml(str)
              }
-             return str
            }).use(mditAttrs).use(mditRendererFence)
-
 
 const htmlCont = md.render('...')
 ```
