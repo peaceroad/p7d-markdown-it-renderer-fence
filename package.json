@@ -11,9 +11,9 @@
   "repository": "https://github.com/peaceroad/p7d-markdown-it-renderer-fence",
   "license": "MIT",
   "devDependencies": {
-    "@peaceroad/markdown-it-figure-with-p-caption": "^0.10.1",
+    "@peaceroad/markdown-it-figure-with-p-caption": "^0.14.2",
     "markdown-it": "^14.1.0",
-    "markdown-it-attrs": "^4.2.0",
-    "highlight.js": "^11.10.0"
+    "markdown-it-attrs": "^4.3.1",
+    "highlight.js": "^11.11.1"
   }
 }
