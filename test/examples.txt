@@ -128,3 +128,20 @@ console.log('A test.')
 <pre><code class="language-js" data-pre-start="3" style="counter-set:pre-line-number 3;" aria-label="LABEL"><span class="pre-line">console.log('A test.')</span>
 </code></pre>
 
+
+[Markdown]
+``` {wrap}
+console.log('A test.')
+```
+[HTML]
+<pre><code data-pre-wrap="true" style="white-space: pre-wrap;">console.log('A test.')
+</code></pre>
+
+
+[Markdown]
+```js {pre-wrap="true" style="color:red"}
+console.log('A test.')
+```
+[HTML]
+<pre><code class="language-js" data-pre-wrap="true" style="color:red; white-space: pre-wrap;">console.log('A test.')
+</code></pre>

@@ -1,7 +1,4 @@
 const infoReg = /^([^{\s]*)(?:\s*\{(.*)\})?$/
-const startReg = /^(?:(?:data-)?pre-)?start$/
-const startFilterReg = /^(?:pre-)?start$/
-const emphasisReg = /^em(?:phasize)?-lines$/
 
 const attrReg = /^(?:([.#])(.+)|(.+?)(?:=(["'])?(.*?)\1)?)$/
 const interAttrsSpaceReg = / +/
@@ -10,6 +7,18 @@ const preLineTag = '<span class="pre-line">'
 const emphOpenTag = '<span class="pre-lines-emphasis">'
 const closeTag = '</span>'
 const closeTagLen = closeTag.length
+const preWrapStyleReg = /(?:^|;)\s*white-space\s*:\s*pre-wrap\s*(?:;|$)/i
+
+const appendStyleValue = (style, addition) => {
+  if (!addition) return style
+  let next = addition.trim()
+  if (!next) return style
+  if (!next.endsWith(';')) next += ';'
+  if (!style) return next
+  const base = style.trimEnd()
+  const separator = base.endsWith(';') ? ' ' : '; '
+  return base + separator + next
+}
 
 const getEmphasizeLines = (attrVal) => {
   const lines = []
@@ -29,16 +38,20 @@ const getEmphasizeLines = (attrVal) => {
 const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmphasis, needEndSpan, threshold, lineEndSpanClass, br) => {
   const lines = content.split(br)
   const len = lines.length
-  const endSpanTag = `<span class="${lineEndSpanClass}"></span>`
+  const endSpanTag = needEndSpan ? `<span class="${lineEndSpanClass}"></span>` : ''
   let emIdx = 0
   let [emStart, emEnd] = emphasizeLines[0] || []
   for (let n = 0; n < len; n++) {
     let line = lines[n]
 
     if (needEndSpan) {
-      let lineLen = 0
-      for (let i = 0, L = line.length; i < L; i++) {
-        lineLen += line.charCodeAt(i) > 255 ? 2 : 1
+      let lineLen = line.length
+      if (lineLen < threshold) {
+        lineLen = 0
+        for (let i = 0, L = line.length; i < L; i++) {
+          lineLen += line.charCodeAt(i) > 255 ? 2 : 1
+          if (lineLen >= threshold) break
+        }
       }
       if (lineLen >= threshold) {
         if (line.slice(-closeTagLen) === closeTag) {
@@ -50,21 +63,23 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
     }
 
     if (needLineNumber && n !== len - 1) {
-      const tagStack = []
-      tagReg.lastIndex = 0
-      let match
-      while ((match = tagReg.exec(line)) !== null) {
-        const [fullMatch, tagName] = match
-        if (fullMatch.startsWith('</')) {
-          if (tagStack[tagStack.length-1] === tagName) tagStack.pop()
-        } else if (!fullMatch.endsWith('/>')) {
-          tagStack.push(tagName)
+      if (line.indexOf('<') !== -1) {
+        const tagStack = []
+        tagReg.lastIndex = 0
+        let match
+        while ((match = tagReg.exec(line)) !== null) {
+          const [fullMatch, tagName] = match
+          if (fullMatch.startsWith('</')) {
+            if (tagStack[tagStack.length-1] === tagName) tagStack.pop()
+          } else if (!fullMatch.endsWith('/>')) {
+            tagStack.push(tagName)
+          }
         }
-      }
-      for (let i = tagStack.length-1; i >= 0; i--) {
-        const tagName = tagStack[i]
-        line += `</${tagName}>`
-        lines[n+1] = `<${tagName}>` + (lines[n+1]||'')
+        for (let i = tagStack.length-1; i >= 0; i--) {
+          const tagName = tagStack[i]
+          line += `</${tagName}>`
+          lines[n+1] = `<${tagName}>` + (lines[n+1]||'')
+        }
       }
       line = preLineTag + line + closeTag
     }
@@ -123,7 +138,8 @@ const orderTokenAttrs = (token, opt) => {
 const getFenceHtml = (tokens, idx, md, opt, slf) => {
   const token = tokens[idx]
   let content = token.content
-  const match = token.info.trim().match(infoReg)
+  const info = token.info.trim()
+  const match = info.match(infoReg)
   let lang = match ? match[1] : ''
 
   if (match && match[2]) {
@@ -132,34 +148,130 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
   let langClass = ''
   if (lang  && lang !== 'samp') {
     langClass = opt.langPrefix + lang
-    token.attrSet('class', langClass + (token.attrGet('class') ? ' ' + token.attrGet('class') : ''))
+    const existingClass = token.attrGet('class')
+    token.attrSet('class', existingClass ? langClass + ' ' + existingClass : langClass)
   }
 
   let startNumber = -1
   let emphasizeLines = []
 
   if (token.attrs) {
-    for (let attr of token.attrs) {
-      if (attr[0] === 'class') {
-        const hasClassLang = attr[1].match(opt._langReg)
-        if (hasClassLang) lang = hasClassLang[1]
-      }
-      if (startReg.test(attr[0])) {
-        startNumber = +attr[1]
-        if (attr[0] !== 'data-pre-start') {
-          token.attrSet('data-pre-start', attr[1])
-          token.attrs = token.attrs.filter(attr => !startFilterReg.test(attr[0]))
+    const newAttrs = []
+    let dataPreStartIndex = -1
+    let dataPreEmphasisIndex = -1
+    let dataPreWrapIndex = -1
+    let styleIndex = -1
+    let startValue
+    let emphasisValue
+    let styleValue
+    let sawStartAttr = false
+    let sawEmphasisAttr = false
+    let sawWrapAttr = false
+    let wrapEnabled = false
+    const appendOrder = []
+
+    for (const attr of token.attrs) {
+      const name = attr[0]
+      const val = attr[1]
+
+      switch (name) {
+        case 'class': {
+          if (val.indexOf(opt.langPrefix) !== -1) {
+            const hasClassLang = opt._langReg.exec(val)
+            if (hasClassLang) lang = hasClassLang[1]
+          }
+          newAttrs.push(attr)
+          break
         }
-      }
-      if (emphasisReg.test(attr[0])) {
-        emphasizeLines = getEmphasizeLines(attr[1])
-        token.attrSet('data-pre-emphasis', attr[1])
-        token.attrs = token.attrs.filter(attr => !emphasisReg.test(attr[0]))
+        case 'style':
+          styleIndex = newAttrs.length
+          styleValue = val
+          newAttrs.push(attr)
+          break
+        case 'data-pre-start':
+          startNumber = +val
+          startValue = val
+          dataPreStartIndex = newAttrs.length
+          newAttrs.push(attr)
+          break
+        case 'start':
+        case 'pre-start':
+          startNumber = +val
+          startValue = val
+          if (!sawStartAttr) {
+            appendOrder.push('start')
+            sawStartAttr = true
+          }
+          break
+        case 'data-pre-emphasis':
+          dataPreEmphasisIndex = newAttrs.length
+          newAttrs.push(attr)
+          break
+        case 'em-lines':
+        case 'emphasize-lines':
+          emphasizeLines = getEmphasizeLines(val)
+          emphasisValue = val
+          if (!sawEmphasisAttr) {
+            appendOrder.push('emphasis')
+            sawEmphasisAttr = true
+          }
+          break
+        case 'data-pre-wrap':
+          dataPreWrapIndex = newAttrs.length
+          newAttrs.push(attr)
+          if (val === '' || val === 'true') wrapEnabled = true
+          break
+        case 'wrap':
+        case 'pre-wrap':
+          if (val === '' || val === 'true') {
+            wrapEnabled = true
+            if (!sawWrapAttr) {
+              appendOrder.push('wrap')
+              sawWrapAttr = true
+            }
+          }
+          break
+        default:
+          newAttrs.push(attr)
       }
     }
-  }
-  if (startNumber !== -1) {
-    token.attrJoin('style', 'counter-set:pre-line-number ' + startNumber + ';')
+
+    if (startValue !== undefined && dataPreStartIndex >= 0) {
+      newAttrs[dataPreStartIndex][1] = startValue
+    }
+    if (emphasisValue !== undefined && dataPreEmphasisIndex >= 0) {
+      newAttrs[dataPreEmphasisIndex][1] = emphasisValue
+    }
+    if (wrapEnabled && dataPreWrapIndex >= 0) {
+      newAttrs[dataPreWrapIndex][1] = 'true'
+    }
+    for (const kind of appendOrder) {
+      if (kind === 'start') {
+        if (dataPreStartIndex === -1 && startValue !== undefined) {
+          newAttrs.push(['data-pre-start', startValue])
+        }
+      } else if (kind === 'emphasis') {
+        if (dataPreEmphasisIndex === -1 && emphasisValue !== undefined) {
+          newAttrs.push(['data-pre-emphasis', emphasisValue])
+        }
+      } else if (kind === 'wrap') {
+        if (dataPreWrapIndex === -1 && wrapEnabled) {
+          newAttrs.push(['data-pre-wrap', 'true'])
+        }
+      }
+    }
+    if (wrapEnabled && (!styleValue || !preWrapStyleReg.test(styleValue))) {
+      styleValue = appendStyleValue(styleValue, 'white-space: pre-wrap;')
+    }
+    if (startNumber !== -1) {
+      styleValue = appendStyleValue(styleValue, 'counter-set:pre-line-number ' + startNumber + ';')
+    }
+    if (styleIndex >= 0) {
+      if (styleValue !== undefined) newAttrs[styleIndex][1] = styleValue
+    } else if (styleValue) {
+      newAttrs.push(['style', styleValue])
+    }
+    token.attrs = newAttrs
   }
   orderTokenAttrs(token, opt)
 
@@ -177,8 +289,8 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
   const needEmphasis = opt.setEmphasizeLines && emphasizeLines.length > 0
   const needEndSpan = opt.setLineEndSpan > 0
   if (needLineNumber || needEmphasis || needEndSpan) {
-    const brMatch = content.match(/\r?\n/)
-    const br = brMatch ? brMatch[0] : '\n'
+    const nlIndex = content.indexOf('\n')
+    const br = nlIndex > 0 && content[nlIndex - 1] === '\r' ? '\r\n' : '\n'
     content = splitFenceBlockToLines(content, emphasizeLines, needLineNumber, needEmphasis, needEndSpan, opt.setLineEndSpan, opt.lineEndSpanClass, br)
   }
 
