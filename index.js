@@ -8,6 +8,9 @@ const emphOpenTag = '<span class="pre-lines-emphasis">'
 const closeTag = '</span>'
 const closeTagLen = closeTag.length
 const preWrapStyle = 'white-space: pre-wrap; overflow-wrap: anywhere;'
+const preCodeWrapperReg = /^\s*<pre\b([^>]*)>\s*<code\b([^>]*)>([\s\S]*?)<\/code>\s*<\/pre>\s*$/i
+const htmlAttrReg = /([^\s=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g
+const voidTags = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'])
 
 const appendStyleValue = (style, addition) => {
   if (!addition) return style
@@ -20,18 +23,75 @@ const appendStyleValue = (style, addition) => {
   return base + separator + next
 }
 
+const parseHtmlAttrs = (attrText) => {
+  const attrs = []
+  if (!attrText) return attrs
+  htmlAttrReg.lastIndex = 0
+  let match
+  while ((match = htmlAttrReg.exec(attrText)) !== null) {
+    const name = match[1]
+    const val = match[2] ?? match[3] ?? match[4] ?? ''
+    attrs.push([name, val])
+  }
+  return attrs
+}
+
+const mergeAttrSets = (target, source) => {
+  if (!source || source.length === 0) return
+  const index = new Map()
+  for (let i = 0; i < target.length; i++) index.set(target[i][0], i)
+  for (const [name, val] of source) {
+    const idx = index.get(name)
+    if (name === 'class') {
+      if (idx === undefined) {
+        target.push([name, val])
+        index.set(name, target.length - 1)
+      } else if (val) {
+        const existing = target[idx][1]
+        target[idx][1] = existing ? existing + ' ' + val : val
+      }
+      continue
+    }
+    if (name === 'style') {
+      if (idx === undefined) {
+        target.push([name, val])
+        index.set(name, target.length - 1)
+      } else {
+        target[idx][1] = appendStyleValue(target[idx][1], val)
+      }
+      continue
+    }
+    if (idx === undefined) {
+      target.push([name, val])
+      index.set(name, target.length - 1)
+    }
+  }
+}
+
 const getEmphasizeLines = (attrVal) => {
   const lines = []
-  let s, e
-  attrVal.split(',').forEach(range => {
-    if (range.indexOf('-') > -1) {
-      [s, e] = range.split('-').map(n => parseInt(n.trim(), 10))
-      lines.push([s, e])
+  for (const range of attrVal.split(',')) {
+    const part = range.trim()
+    if (!part) continue
+    const dash = part.indexOf('-')
+    if (dash > -1) {
+      const left = part.slice(0, dash).trim()
+      const right = part.slice(dash + 1).trim()
+      const s = left ? parseInt(left, 10) : null
+      const e = right ? parseInt(right, 10) : null
+      if (s !== null && (!Number.isFinite(s) || s <= 0)) continue
+      if (e !== null && (!Number.isFinite(e) || e <= 0)) continue
+      if (s === null && e === null) {
+        lines.push([null, null])
+      } else {
+        lines.push([s, e])
+      }
     } else {
-      s = parseInt(range.trim(), 10)
+      const s = parseInt(part, 10)
+      if (!Number.isFinite(s) || s <= 0) continue
       lines.push([s, s])
     }
-  })
+  }
   return lines
 }
 
@@ -39,8 +99,33 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
   const lines = content.split(br)
   const len = lines.length
   const endSpanTag = needEndSpan ? `<span class="${lineEndSpanClass}"></span>` : ''
+  const maxLine = len - (lines[len - 1] === '' ? 1 : 0)
   let emIdx = 0
-  let [emStart, emEnd] = emphasizeLines[0] || []
+  let emStart
+  let emEnd
+  let doEmphasis = false
+  if (needEmphasis && maxLine > 0) {
+    const normalized = []
+    for (const range of emphasizeLines) {
+      let [s, e] = range
+      if (s == null) s = 1
+      if (e == null) e = maxLine
+      if (!Number.isFinite(s) || !Number.isFinite(e) || s <= 0 || e <= 0) continue
+      if (s > e) {
+        const tmp = s
+        s = e
+        e = tmp
+      }
+      if (s > maxLine || e < 1) continue
+      if (e > maxLine) e = maxLine
+      normalized.push([s, e])
+    }
+    if (normalized.length > 0) {
+      doEmphasis = true
+      emphasizeLines = normalized
+      ;[emStart, emEnd] = emphasizeLines[0]
+    }
+  }
   for (let n = 0; n < len; n++) {
     let line = lines[n]
 
@@ -69,10 +154,11 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
         let match
         while ((match = tagReg.exec(line)) !== null) {
           const [fullMatch, tagName] = match
+          const tagNameLower = tagName.toLowerCase()
           if (fullMatch.startsWith('</')) {
-            if (tagStack[tagStack.length-1] === tagName) tagStack.pop()
-          } else if (!fullMatch.endsWith('/>')) {
-            tagStack.push(tagName)
+            if (tagStack[tagStack.length-1] === tagNameLower) tagStack.pop()
+          } else if (!fullMatch.endsWith('/>') && !voidTags.has(tagNameLower)) {
+            tagStack.push(tagNameLower)
           }
         }
         for (let i = tagStack.length-1; i >= 0; i--) {
@@ -84,7 +170,7 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
       line = preLineTag + line + closeTag
     }
 
-    if (needEmphasis) {
+    if (doEmphasis) {
       if (emStart === n + 1) line = emphOpenTag + line
       if (emEnd === n) {
         line = closeTag + line
@@ -258,15 +344,6 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
     if (wrapEnabled) preWrapValue = 'true'
     token.attrs = newAttrs
   }
-  orderTokenAttrs(token, opt)
-  let preAttrs = ''
-  if (preWrapValue !== undefined) {
-    const escapeHtml = md.utils.escapeHtml
-    preAttrs = ' data-pre-wrap="' + escapeHtml(preWrapValue) + '"'
-    if (wrapEnabled && opt.setPreWrapStyle !== false) {
-      preAttrs += ' style="' + escapeHtml(preWrapStyle) + '"'
-    }
-  }
 
   if (opt.setHighlight && md.options.highlight) {
     if (lang && lang !== 'samp' ) {
@@ -278,6 +355,41 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
     content = md.utils.escapeHtml(token.content)
   }
 
+  let preAttrsFromHighlight
+  if (content.indexOf('<pre') !== -1) {
+    const preMatch = content.match(preCodeWrapperReg)
+    if (preMatch) {
+      preAttrsFromHighlight = parseHtmlAttrs(preMatch[1])
+      const codeAttrsFromHighlight = parseHtmlAttrs(preMatch[2])
+      content = preMatch[3]
+      if (codeAttrsFromHighlight.length) {
+        if (!token.attrs) token.attrs = []
+        mergeAttrSets(token.attrs, codeAttrsFromHighlight)
+      }
+    }
+  }
+  orderTokenAttrs(token, opt)
+
+  let preAttrs = preAttrsFromHighlight ? preAttrsFromHighlight.slice() : []
+  if (preWrapValue !== undefined) {
+    const idx = preAttrs.findIndex(attr => attr[0] === 'data-pre-wrap')
+    if (idx === -1) {
+      preAttrs.push(['data-pre-wrap', preWrapValue])
+    } else {
+      preAttrs[idx][1] = preWrapValue
+    }
+  }
+  if (wrapEnabled && opt.setPreWrapStyle !== false) {
+    const idx = preAttrs.findIndex(attr => attr[0] === 'style')
+    if (idx === -1) {
+      preAttrs.push(['style', preWrapStyle])
+    } else {
+      preAttrs[idx][1] = appendStyleValue(preAttrs[idx][1], preWrapStyle)
+    }
+  }
+  if (preAttrs.length) orderTokenAttrs({ attrs: preAttrs }, opt)
+  const preAttrsText = preAttrs.length ? slf.renderAttrs({ attrs: preAttrs }) : ''
+
   const needLineNumber = opt.setLineNumber && startNumber >= 0
   const needEmphasis = opt.setEmphasizeLines && emphasizeLines.length > 0
   const needEndSpan = opt.setLineEndSpan > 0
@@ -288,7 +400,7 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
   }
 
   const tag = opt._sampReg.test(lang) ? 'samp' : 'code'
-  return `<pre${preAttrs}><${tag}${slf.renderAttrs(token)}>${content}</${tag}></pre>\n`
+  return `<pre${preAttrsText}><${tag}${slf.renderAttrs(token)}>${content}</${tag}></pre>\n`
 }
 
 const mditRendererFence = (md, option) => {

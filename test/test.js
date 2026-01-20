@@ -7,6 +7,7 @@ import mditFigureWithPCaption from '@peaceroad/markdown-it-figure-with-p-caption
 import mditRendererFence from '../index.js'
 import mditAttrs from 'markdown-it-attrs'
 import highlightjs from 'highlight.js'
+import { createHighlighter } from 'shiki'
 
 
 let opt = {}
@@ -27,6 +28,47 @@ const mdHighlightJs = mdit({
 }).use(mditRendererFence, opt).use(mditAttrs)
 const mdLinesEmphasis = mdit({ html: true }).use(mditRendererFence).use(mditAttrs)
 const mdLIneEndSpan = mdit({ html: true }).use(mditRendererFence, {setLineEndSpan: 8}).use(mditAttrs)
+const mdVoidTags = mdit({
+  html: true,
+  langPrefix: 'language-',
+  highlight: (str, lang) => {
+    if (lang === 'mock') return 'line1<br>\nline2\n'
+    return md.utils.escapeHtml(str)
+  }
+}).use(mditRendererFence, opt).use(mditAttrs)
+const shikiHighlighter = await createHighlighter({
+  themes: ['github-light'],
+  langs: ['javascript'],
+})
+const mdShiki = mdit({
+  html: true,
+  langPrefix: 'language-',
+  highlight: (str, lang) => {
+    if (lang === 'javascript') {
+      const html = shikiHighlighter.codeToHtml(str, {
+        lang: 'javascript',
+        theme: 'github-light',
+        structure: 'inline',
+      })
+      return html.replace(/<br\s*\/?>/g, '\n')
+    }
+    return md.utils.escapeHtml(str)
+  }
+}).use(mditRendererFence, opt).use(mditAttrs)
+const mdShikiClassic = mdit({
+  html: true,
+  langPrefix: 'language-',
+  highlight: (str, lang) => {
+    if (lang === 'javascript') {
+      return shikiHighlighter.codeToHtml(str, {
+        lang: 'javascript',
+        theme: 'github-light',
+        structure: 'classic',
+      })
+    }
+    return md.utils.escapeHtml(str)
+  }
+}).use(mditRendererFence, opt).use(mditAttrs)
 
 let __dirname = path.dirname(new URL(import.meta.url).pathname)
 const isWindows = (process.platform === 'win32')
@@ -39,6 +81,9 @@ const testData = {
   highlightjs: __dirname + path.sep +  'examples-highlightjs.txt',
   linesEmphasis: __dirname + path.sep +  'example-lines-emphasis.txt',
   lineEndSpan: __dirname + path.sep +  'example-line-end-span.txt',
+  voidTags: __dirname + path.sep + 'example-void-tags.txt',
+  shiki: __dirname + path.sep + 'examples-shiki.txt',
+  shikiClassic: __dirname + path.sep + 'examples-shiki-classic.txt',
 }
 
 const getTestData = (pat) => {
@@ -119,5 +164,8 @@ pass = runTest(md, testData.noOption, pass)
 pass = runTest(mdHighlightJs, testData.highlightjs, pass)
 pass = runTest(mdLinesEmphasis, testData.linesEmphasis, pass)
 pass = runTest(mdLIneEndSpan, testData.lineEndSpan, pass)
+pass = runTest(mdVoidTags, testData.voidTags, pass)
+pass = runTest(mdShiki, testData.shiki, pass)
+pass = runTest(mdShikiClassic, testData.shikiClassic, pass)
 
 if (pass) console.log('Passed all test.')

@@ -1,0 +1,8 @@
+[Markdown]
+```mock {start="1"}
+dummy
+```
+[HTML]
+<pre><code class="language-mock" data-pre-start="1" style="counter-set:pre-line-number 1;"><span class="pre-line">line1<br></span>
+<span class="pre-line">line2</span>
+</code></pre>

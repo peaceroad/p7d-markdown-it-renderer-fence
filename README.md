@@ -92,6 +92,7 @@ CSS example: <https://codepen.io/peaceroad/pen/qBGpYGK>
 ## Add span elements to add background color to the row ranges.
 
 Add `em-lines` or `emphasize-lines` attribute by by adding attributes used markdown-it-attrs.
+Open-ended ranges are supported: `-5` (1..5), `3-` (3..last), `-` (all).
 
 ~~~md
 ``` {em-lines="2,4-5"}

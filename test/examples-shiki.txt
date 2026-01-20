@@ -1,0 +1,9 @@
+[Markdown]
+```javascript {start="1"}
+const a = 1
+next
+```
+[HTML]
+<pre><code class="language-javascript" data-pre-start="1" style="counter-set:pre-line-number 1;"><span class="pre-line"><span style="color:#D73A49">const</span><span style="color:#005CC5"> a</span><span style="color:#D73A49"> =</span><span style="color:#005CC5"> 1</span></span>
+<span class="pre-line"><span style="color:#24292E">next</span></span>
+</code></pre>
