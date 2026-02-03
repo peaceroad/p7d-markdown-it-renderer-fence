@@ -1,0 +1,21 @@
+[Markdown]
+```samp {comment-line="#"}
+# comment
+echo 1
+  # indented
+```
+[HTML]
+<pre><samp data-pre-comment-line="#"><span class="pre-comment-line"># comment</span>
+echo 1
+<span class="pre-comment-line">  # indented</span>
+</samp></pre>
+
+[Markdown]
+```js {comment-line="//"}
+ // comment
+const a = 1
+```
+[HTML]
+<pre><code class="language-js" data-pre-comment-line="//"><span class="pre-comment-line"> // comment</span>
+const a = 1
+</code></pre>

@@ -1,0 +1,17 @@
+[Markdown]
+```javascript {start="1"}
+const a = 1
+next
+```
+[HTML]
+<pre class="shiki github-light" style="background-color:#fff;color:#24292e" tabindex="0"><code class="language-javascript" data-pre-start="1" style="counter-set:pre-line-number 1;"><span class="line"><span style="color:#D73A49">const</span><span style="color:#005CC5"> a</span><span style="color:#D73A49"> =</span><span style="color:#005CC5"> 1</span></span>
+<span class="line"><span style="color:#24292E">next</span></span>
+<span class="line"></span></code></pre>
+
+[Markdown]
+```javascript {wrap em-lines="1"}
+const a = 1
+```
+[HTML]
+<pre class="shiki github-light" data-pre-wrap="true" style="background-color:#fff;color:#24292e; white-space: pre-wrap; overflow-wrap: anywhere;" tabindex="0"><code class="language-javascript" data-pre-emphasis="1"><span class="line"><span style="color:#D73A49">const</span><span style="color:#005CC5"> a</span><span style="color:#D73A49"> =</span><span style="color:#005CC5"> 1</span></span>
+<span class="line"></span></code></pre>

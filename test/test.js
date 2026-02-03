@@ -27,7 +27,7 @@ const mdHighlightJs = mdit({
   }
 }).use(mditRendererFence, opt).use(mditAttrs)
 const mdLinesEmphasis = mdit({ html: true }).use(mditRendererFence).use(mditAttrs)
-const mdLIneEndSpan = mdit({ html: true }).use(mditRendererFence, {setLineEndSpan: 8}).use(mditAttrs)
+const mdLIneEndSpan = mdit({ html: true }).use(mditRendererFence, { lineEndSpanThreshold: 8 }).use(mditAttrs)
 const mdVoidTags = mdit({
   html: true,
   langPrefix: 'language-',
@@ -69,6 +69,20 @@ const mdShikiClassic = mdit({
     return md.utils.escapeHtml(str)
   }
 }).use(mditRendererFence, opt).use(mditAttrs)
+const mdShikiClassicPass = mdit({
+  html: true,
+  langPrefix: 'language-',
+  highlight: (str, lang) => {
+    if (lang === 'javascript') {
+      return shikiHighlighter.codeToHtml(str, {
+        lang: 'javascript',
+        theme: 'github-light',
+        structure: 'classic',
+      })
+    }
+    return md.utils.escapeHtml(str)
+  }
+}).use(mditRendererFence, { useHighlightPre: true }).use(mditAttrs)
 
 let __dirname = path.dirname(new URL(import.meta.url).pathname)
 const isWindows = (process.platform === 'win32')
@@ -79,11 +93,13 @@ if (isWindows) {
 const testData = {
   noOption: __dirname + path.sep +  'examples.txt',
   highlightjs: __dirname + path.sep +  'examples-highlightjs.txt',
+  sampComment: __dirname + path.sep + 'example-samp-comment.txt',
   linesEmphasis: __dirname + path.sep +  'example-lines-emphasis.txt',
   lineEndSpan: __dirname + path.sep +  'example-line-end-span.txt',
   voidTags: __dirname + path.sep + 'example-void-tags.txt',
   shiki: __dirname + path.sep + 'examples-shiki.txt',
   shikiClassic: __dirname + path.sep + 'examples-shiki-classic.txt',
+  shikiClassicPass: __dirname + path.sep + 'examples-shiki-classic-pass.txt',
 }
 
 const getTestData = (pat) => {
@@ -161,11 +177,13 @@ const runTest = (process, pat, pass, testId) => {
 
 let pass = true
 pass = runTest(md, testData.noOption, pass)
+pass = runTest(md, testData.sampComment, pass)
 pass = runTest(mdHighlightJs, testData.highlightjs, pass)
 pass = runTest(mdLinesEmphasis, testData.linesEmphasis, pass)
 pass = runTest(mdLIneEndSpan, testData.lineEndSpan, pass)
 pass = runTest(mdVoidTags, testData.voidTags, pass)
 pass = runTest(mdShiki, testData.shiki, pass)
 pass = runTest(mdShikiClassic, testData.shikiClassic, pass)
+pass = runTest(mdShikiClassicPass, testData.shikiClassicPass, pass)
 
 if (pass) console.log('Passed all test.')

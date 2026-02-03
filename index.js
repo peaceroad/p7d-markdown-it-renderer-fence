@@ -5,6 +5,7 @@ const interAttrsSpaceReg = / +/
 const tagReg = /<\/?([A-Za-z][A-Za-z0-9-]*)(?:\s+[^>]*?)?\/?\s*>/g
 const preLineTag = '<span class="pre-line">'
 const emphOpenTag = '<span class="pre-lines-emphasis">'
+const commentLineClass = 'pre-comment-line'
 const closeTag = '</span>'
 const closeTagLen = closeTag.length
 const preWrapStyle = 'white-space: pre-wrap; overflow-wrap: anywhere;'
@@ -95,10 +96,11 @@ const getEmphasizeLines = (attrVal) => {
   return lines
 }
 
-const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmphasis, needEndSpan, threshold, lineEndSpanClass, br) => {
+const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmphasis, needEndSpan, threshold, lineEndSpanClass, br, commentLines, commentClass) => {
   const lines = content.split(br)
   const len = lines.length
   const endSpanTag = needEndSpan ? `<span class="${lineEndSpanClass}"></span>` : ''
+  const needComment = !!(commentLines && commentClass)
   const maxLine = len - (lines[len - 1] === '' ? 1 : 0)
   let emIdx = 0
   let emStart
@@ -167,6 +169,13 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
           lines[n+1] = `<${tagName}>` + (lines[n+1]||'')
         }
       }
+    }
+
+    if (needComment && commentLines[n]) {
+      line = `<span class="${commentClass}">` + line + closeTag
+    }
+
+    if (needLineNumber && n !== len - 1) {
       line = preLineTag + line + closeTag
     }
 
@@ -242,15 +251,18 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
   let emphasizeLines = []
   let wrapEnabled = false
   let preWrapValue
+  let commentLineValue
 
   if (token.attrs) {
     const newAttrs = []
     let dataPreStartIndex = -1
     let dataPreEmphasisIndex = -1
     let styleIndex = -1
+    let dataPreCommentIndex = -1
     let startValue
     let emphasisValue
     let styleValue
+    let sawCommentLine = false
     let sawStartAttr = false
     let sawEmphasisAttr = false
     const appendOrder = []
@@ -292,6 +304,11 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
           dataPreEmphasisIndex = newAttrs.length
           newAttrs.push(attr)
           break
+        case 'data-pre-comment-line':
+          dataPreCommentIndex = newAttrs.length
+          commentLineValue = val
+          newAttrs.push(attr)
+          break
         case 'em-lines':
         case 'emphasize-lines':
           emphasizeLines = getEmphasizeLines(val)
@@ -299,6 +316,13 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
           if (!sawEmphasisAttr) {
             appendOrder.push('emphasis')
             sawEmphasisAttr = true
+          }
+          break
+        case 'comment-line':
+          commentLineValue = val
+          if (!sawCommentLine) {
+            appendOrder.push('comment')
+            sawCommentLine = true
           }
           break
         case 'data-pre-wrap':
@@ -322,6 +346,9 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
     if (emphasisValue !== undefined && dataPreEmphasisIndex >= 0) {
       newAttrs[dataPreEmphasisIndex][1] = emphasisValue
     }
+    if (commentLineValue !== undefined && dataPreCommentIndex >= 0) {
+      newAttrs[dataPreCommentIndex][1] = commentLineValue
+    }
     for (const kind of appendOrder) {
       if (kind === 'start') {
         if (dataPreStartIndex === -1 && startValue !== undefined) {
@@ -330,6 +357,10 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
       } else if (kind === 'emphasis') {
         if (dataPreEmphasisIndex === -1 && emphasisValue !== undefined) {
           newAttrs.push(['data-pre-emphasis', emphasisValue])
+        }
+      } else if (kind === 'comment') {
+        if (dataPreCommentIndex === -1 && commentLineValue !== undefined) {
+          newAttrs.push(['data-pre-comment-line', commentLineValue])
         }
       }
     }
@@ -345,6 +376,19 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
     token.attrs = newAttrs
   }
 
+  const isSamp = opt._sampReg.test(lang)
+  let commentLines
+  let needComment = false
+  if (commentLineValue) {
+    const rawLines = token.content.split(/\r?\n/)
+    commentLines = new Array(rawLines.length)
+    for (let i = 0; i < rawLines.length; i++) {
+      const isComment = rawLines[i].trimStart().startsWith(commentLineValue)
+      commentLines[i] = isComment
+      if (isComment) needComment = true
+    }
+  }
+
   if (opt.setHighlight && md.options.highlight) {
     if (lang && lang !== 'samp' ) {
       content = md.options.highlight(content, lang)
@@ -356,9 +400,12 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
   }
 
   let preAttrsFromHighlight
-  if (content.indexOf('<pre') !== -1) {
+  let hasHighlightPre = false
+  const hasPreTag = (content.indexOf('<pre') !== -1 || content.indexOf('<PRE') !== -1)
+  if (hasPreTag) {
     const preMatch = content.match(preCodeWrapperReg)
     if (preMatch) {
+      hasHighlightPre = true
       preAttrsFromHighlight = parseHtmlAttrs(preMatch[1])
       const codeAttrsFromHighlight = parseHtmlAttrs(preMatch[2])
       content = preMatch[3]
@@ -367,6 +414,9 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
         mergeAttrSets(token.attrs, codeAttrsFromHighlight)
       }
     }
+  }
+  if (opt.useHighlightPre && hasPreTag && !hasHighlightPre) {
+    return content.endsWith('\n') ? content : content + '\n'
   }
   orderTokenAttrs(token, opt)
 
@@ -392,14 +442,15 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
 
   const needLineNumber = opt.setLineNumber && startNumber >= 0
   const needEmphasis = opt.setEmphasizeLines && emphasizeLines.length > 0
-  const needEndSpan = opt.setLineEndSpan > 0
-  if (needLineNumber || needEmphasis || needEndSpan) {
+  const needEndSpan = opt.lineEndSpanThreshold > 0
+  const useHighlightPre = opt.useHighlightPre && hasHighlightPre
+  if (!useHighlightPre && (needLineNumber || needEmphasis || needEndSpan || needComment)) {
     const nlIndex = content.indexOf('\n')
     const br = nlIndex > 0 && content[nlIndex - 1] === '\r' ? '\r\n' : '\n'
-    content = splitFenceBlockToLines(content, emphasizeLines, needLineNumber, needEmphasis, needEndSpan, opt.setLineEndSpan, opt.lineEndSpanClass, br)
+    content = splitFenceBlockToLines(content, emphasizeLines, needLineNumber, needEmphasis, needEndSpan, opt.lineEndSpanThreshold, opt.lineEndSpanClass, br, commentLines, commentLineClass)
   }
 
-  const tag = opt._sampReg.test(lang) ? 'samp' : 'code'
+  const tag = isSamp ? 'samp' : 'code'
   return `<pre${preAttrsText}><${tag}${slf.renderAttrs(token)}>${content}</${tag}></pre>\n`
 }
 
@@ -409,13 +460,19 @@ const mditRendererFence = (md, option) => {
     setHighlight: true,
     setLineNumber: true,
     setEmphasizeLines: true,
-    setLineEndSpan: 0,
+    lineEndSpanThreshold: 0,
     lineEndSpanClass: 'pre-lineend-spacer',
     setPreWrapStyle: true,
+    useHighlightPre: false,
     sampLang: 'shell,console',
     langPrefix: md.options.langPrefix || 'language-',
   }
-  if (option) Object.assign(opt, option)
+  if (option) {
+    Object.assign(opt, option)
+    if (option.lineEndSpanThreshold == null && option.setLineEndSpan != null) {
+      opt.lineEndSpanThreshold = option.setLineEndSpan
+    }
+  }
 
   opt._sampReg = new RegExp('^(?:samp|' + opt.sampLang.split(',').join('|') + ')$')
   opt._langReg = new RegExp(opt.langPrefix + '([A-Za-z0-9-]+)')

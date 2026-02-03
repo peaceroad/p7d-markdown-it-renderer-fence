@@ -133,6 +133,25 @@ const longLine = 'This line is long but wraps.'
 
 When `setPreWrapStyle` is set to false, only `data-pre-wrap="true"` is added and the inline style is omitted.
 
+## Mark comment lines in code blocks
+
+Add `comment-line` attribute to mark comment lines. Lines that start with the given marker (after leading whitespace) are wrapped with `<span class="pre-comment-line">`.
+
+~~~md
+```samp {comment-line="#"}
+# comment
+echo 1
+```
+~~~
+
+~~~html
+<pre><samp data-pre-comment-line="#"><span class="pre-comment-line"># comment</span>
+echo 1
+</samp></pre>
+~~~
+
+Note: this feature relies on line splitting and is disabled when `useHighlightPre` is true and `<pre><code>` is provided by the highlighter.
+
 
 ## Options
 
@@ -142,8 +161,12 @@ The following options can be specified when initializing the plugin:
 - setHighlight: default true — enable calling highlight function (e.g., highlight.js).
 - setLineNumber: default true — wrap lines in spans for line numbers.
 - setEmphasizeLines: default true — enable emphasis based on emphasize-lines attribute.
-- setLineEndSpan: default 0 — character count threshold to append end-of-line span (0 to disable).
+- lineEndSpanThreshold: default 0 — character count threshold to append end-of-line span (0 to disable).
+- setLineEndSpan: alias for lineEndSpanThreshold.
 - lineEndSpanClass: default 'pre-lineend-spacer' — CSS class for end-of-line span.
 - setPreWrapStyle: default true — include inline pre-wrap styles on `<pre>` when wrap is enabled.
+- useHighlightPre: default false — if highlight returns `<pre><code>`, keep that wrapper and skip line-splitting features; attributes are still merged.
+
+When `useHighlightPre` is true and the highlight output contains `<pre><code>`, line-splitting features are disabled (setLineNumber, setEmphasizeLines, lineEndSpanThreshold, comment-line).
 - sampLang: default 'shell,console' — comma-separated list of languages (in addition to 'samp') that will be rendered using `<samp>`.
 - langPrefix: default md.options.langPrefix || 'language-' — prefix for language class on code blocks.
