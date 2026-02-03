@@ -9,7 +9,7 @@ This file summarizes the current renderer-fence workflow and known concerns.
    - Normalize `start`/`pre-start` -> `data-pre-start` and append counter-set style.
    - Normalize `em-lines`/`emphasize-lines` -> `data-pre-emphasis`.
    - Normalize `wrap`/`pre-wrap` -> `data-pre-wrap` + optional inline `preWrapStyle`.
-   - Normalize `comment-line` -> `data-pre-comment-line` for samp comment markers.
+   - Normalize `comment-line` -> `data-pre-comment-line` for comment markers.
 3. Highlight:
    - If `setHighlight` and `md.options.highlight` are enabled, call highlight.
    - Otherwise escape HTML.
@@ -24,7 +24,7 @@ This file summarizes the current renderer-fence workflow and known concerns.
 
 ## Options and compatibility notes
 - `lineEndSpanThreshold` is the main option; `setLineEndSpan` is an alias.
-- `useHighlightPre` keeps highlight-provided `<pre><code>` and disables line-splitting features.
+- `useHighlightPre` keeps highlight-provided `<pre><code>` and disables line-splitting features; `<samp>` conversion is not possible in this mode.
 - `setPreWrapStyle` controls inline style output for pre-wrap; data-pre-wrap is still added.
 - `comment-line` applies to code blocks and relies on line splitting.
 
@@ -35,5 +35,5 @@ This file summarizes the current renderer-fence workflow and known concerns.
 - `splitFenceBlockToLines` is the heaviest path and runs only when line features are enabled.
 
 ## Tests
-- highlight.js, shiki inline, shiki classic, shiki classic passthrough, samp comment lines.
+- highlight.js, shiki inline, shiki classic, shiki classic passthrough, comment lines.
 - passthrough test includes wrap + em-lines to verify attribute merging and disabled line-splitting.

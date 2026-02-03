@@ -91,7 +91,7 @@ CSS example: <https://codepen.io/peaceroad/pen/qBGpYGK>
 
 ## Add span elements to add background color to the row ranges.
 
-Add `em-lines` or `emphasize-lines` attribute by by adding attributes used markdown-it-attrs.
+Add `em-lines` or `emphasize-lines` attribute by adding attributes used markdown-it-attrs.
 Open-ended ranges are supported: `-5` (1..5), `3-` (3..last), `-` (all).
 
 ~~~md
@@ -165,8 +165,8 @@ The following options can be specified when initializing the plugin:
 - setLineEndSpan: alias for lineEndSpanThreshold.
 - lineEndSpanClass: default 'pre-lineend-spacer' — CSS class for end-of-line span.
 - setPreWrapStyle: default true — include inline pre-wrap styles on `<pre>` when wrap is enabled.
-- useHighlightPre: default false — if highlight returns `<pre><code>`, keep that wrapper and skip line-splitting features; attributes are still merged.
-
-When `useHighlightPre` is true and the highlight output contains `<pre><code>`, line-splitting features are disabled (setLineNumber, setEmphasizeLines, lineEndSpanThreshold, comment-line).
 - sampLang: default 'shell,console' — comma-separated list of languages (in addition to 'samp') that will be rendered using `<samp>`.
 - langPrefix: default md.options.langPrefix || 'language-' — prefix for language class on code blocks.
+- useHighlightPre: default false — if highlight returns `<pre><code>`, keep that wrapper and skip line-splitting features; attributes are still merged.
+
+When `useHighlightPre` is true and the highlight output contains `<pre><code>`, line-splitting features are disabled (setLineNumber, setEmphasizeLines, lineEndSpanThreshold, comment-line). In this mode `<samp>` conversion is not possible, so avoid `useHighlightPre` when you need samp output.
