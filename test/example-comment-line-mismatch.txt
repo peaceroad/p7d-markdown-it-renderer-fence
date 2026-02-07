@@ -1,0 +1,28 @@
+[Markdown]
+```mock {start="1" comment-line="#"}
+# c1
+run
+# c2
+```
+[HTML]
+<pre><code class="language-mock" data-pre-start="1" data-pre-comment-line="#" style="counter-set:pre-line-number 1;"><span class="pre-line"><span># c1</span></span>
+<span class="pre-line"><span class="extra">X</span></span>
+<span class="pre-line"><span>run</span></span>
+<span class="pre-line"><span class="extra">X</span></span>
+<span class="pre-line"><span># c2</span></span>
+<span class="pre-line"><span class="extra">X</span></span>
+<span class="pre-line"><span></span></span>
+<span class="extra">X</span></code></pre>
+
+[Markdown]
+```txt {start="1" comment-line="#"}
+# c1
+run
+# c2
+```
+[HTML]
+<pre><code class="language-txt" data-pre-start="1" data-pre-comment-line="#" style="counter-set:pre-line-number 1;"><span class="pre-line"><span class="pre-comment-line"># c1</span></span>
+<span class="pre-line">run</span>
+<span class="pre-line"><span class="pre-comment-line"># c2</span></span>
+</code></pre>
+

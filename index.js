@@ -12,6 +12,8 @@ const preWrapStyle = 'white-space: pre-wrap; overflow-wrap: anywhere;'
 const preCodeWrapperReg = /^\s*<pre\b([^>]*)>\s*<code\b([^>]*)>([\s\S]*?)<\/code>\s*<\/pre>\s*$/i
 const htmlAttrReg = /([^\s=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g
 const voidTags = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'])
+const nonNegativeIntReg = /^\d+$/
+const lineBreakReg = /\r\n|\n|\r/
 
 const appendStyleValue = (style, addition) => {
   if (!addition) return style
@@ -69,6 +71,21 @@ const mergeAttrSets = (target, source) => {
   }
 }
 
+const parseStartNumber = (val) => {
+  if (val == null) return null
+  const text = String(val).trim()
+  if (!nonNegativeIntReg.test(text)) return null
+  const n = Number(text)
+  if (!Number.isSafeInteger(n)) return null
+  return n
+}
+
+const getLogicalLineCount = (text) => {
+  const lines = text.split(lineBreakReg)
+  if (lines.length === 0) return 0
+  return lines[lines.length - 1] === '' ? lines.length - 1 : lines.length
+}
+
 const getEmphasizeLines = (attrVal) => {
   const lines = []
   for (const range of attrVal.split(',')) {
@@ -97,7 +114,7 @@ const getEmphasizeLines = (attrVal) => {
 }
 
 const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmphasis, needEndSpan, threshold, lineEndSpanClass, br, commentLines, commentClass) => {
-  const lines = content.split(br)
+  const lines = content.split(lineBreakReg)
   const len = lines.length
   const endSpanTag = needEndSpan ? `<span class="${lineEndSpanClass}"></span>` : ''
   const needComment = !!(commentLines && commentClass)
@@ -233,16 +250,14 @@ const orderTokenAttrs = (token, opt) => {
 const getFenceHtml = (tokens, idx, md, opt, slf) => {
   const token = tokens[idx]
   let content = token.content
-  const info = token.info.trim()
-  const match = info.match(infoReg)
+  const match = token.info.trim().match(infoReg)
   let lang = match ? match[1] : ''
 
   if (match && match[2]) {
     getInfoAttr(match[2]).forEach(([name, val]) => token.attrJoin(name, val))
   }
-  let langClass = ''
   if (lang  && lang !== 'samp') {
-    langClass = opt.langPrefix + lang
+    const langClass = opt.langPrefix + lang
     const existingClass = token.attrGet('class')
     token.attrSet('class', existingClass ? langClass + ' ' + existingClass : langClass)
   }
@@ -286,14 +301,14 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
           newAttrs.push(attr)
           break
         case 'data-pre-start':
-          startNumber = +val
+          startNumber = parseStartNumber(val) ?? -1
           startValue = val
           dataPreStartIndex = newAttrs.length
           newAttrs.push(attr)
           break
         case 'start':
         case 'pre-start':
-          startNumber = +val
+          startNumber = parseStartNumber(val) ?? -1
           startValue = val
           if (!sawStartAttr) {
             appendOrder.push('start')
@@ -311,7 +326,7 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
           break
         case 'em-lines':
         case 'emphasize-lines':
-          emphasizeLines = getEmphasizeLines(val)
+          if (opt.setEmphasizeLines) emphasizeLines = getEmphasizeLines(val)
           emphasisValue = val
           if (!sawEmphasisAttr) {
             appendOrder.push('emphasis')
@@ -379,15 +394,7 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
   const isSamp = opt._sampReg.test(lang)
   let commentLines
   let needComment = false
-  if (commentLineValue) {
-    const rawLines = token.content.split(/\r?\n/)
-    commentLines = new Array(rawLines.length)
-    for (let i = 0; i < rawLines.length; i++) {
-      const isComment = rawLines[i].trimStart().startsWith(commentLineValue)
-      commentLines[i] = isComment
-      if (isComment) needComment = true
-    }
-  }
+  let sourceLogicalLineCount = -1
 
   if (opt.setHighlight && md.options.highlight) {
     if (lang && lang !== 'samp' ) {
@@ -444,9 +451,26 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
   const needEmphasis = opt.setEmphasizeLines && emphasizeLines.length > 0
   const needEndSpan = opt.lineEndSpanThreshold > 0
   const useHighlightPre = opt.useHighlightPre && hasHighlightPre
+  if (!useHighlightPre && commentLineValue) {
+    const rawLines = token.content.split(lineBreakReg)
+    sourceLogicalLineCount = getLogicalLineCount(token.content)
+    commentLines = new Array(rawLines.length)
+    for (let i = 0; i < rawLines.length; i++) {
+      const isComment = rawLines[i].trimStart().startsWith(commentLineValue)
+      commentLines[i] = isComment
+      if (isComment) needComment = true
+    }
+  }
   if (!useHighlightPre && (needLineNumber || needEmphasis || needEndSpan || needComment)) {
     const nlIndex = content.indexOf('\n')
     const br = nlIndex > 0 && content[nlIndex - 1] === '\r' ? '\r\n' : '\n'
+    if (needComment && sourceLogicalLineCount >= 0) {
+      const highlightedLogicalLineCount = getLogicalLineCount(content)
+      if (highlightedLogicalLineCount !== sourceLogicalLineCount) {
+        needComment = false
+        commentLines = undefined
+      }
+    }
     content = splitFenceBlockToLines(content, emphasizeLines, needLineNumber, needEmphasis, needEndSpan, opt.lineEndSpanThreshold, opt.lineEndSpanClass, br, commentLines, commentLineClass)
   }
 

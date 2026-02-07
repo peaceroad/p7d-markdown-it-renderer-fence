@@ -36,6 +36,16 @@ const mdVoidTags = mdit({
     return md.utils.escapeHtml(str)
   }
 }).use(mditRendererFence, opt).use(mditAttrs)
+const mdCommentLineMismatch = mdit({
+  html: true,
+  langPrefix: 'language-',
+  highlight: (str, lang) => {
+    if (lang === 'mock') {
+      return str.split('\n').map((line) => `<span>${line}</span>\n<span class="extra">X</span>`).join('\n')
+    }
+    return md.utils.escapeHtml(str)
+  }
+}).use(mditRendererFence, opt).use(mditAttrs)
 const shikiHighlighter = await createHighlighter({
   themes: ['github-light'],
   langs: ['javascript'],
@@ -96,6 +106,8 @@ const testData = {
   sampComment: __dirname + path.sep + 'example-samp-comment.txt',
   linesEmphasis: __dirname + path.sep +  'example-lines-emphasis.txt',
   lineEndSpan: __dirname + path.sep +  'example-line-end-span.txt',
+  startInvalid: __dirname + path.sep + 'example-start-invalid.txt',
+  commentLineMismatch: __dirname + path.sep + 'example-comment-line-mismatch.txt',
   voidTags: __dirname + path.sep + 'example-void-tags.txt',
   shiki: __dirname + path.sep + 'examples-shiki.txt',
   shikiClassic: __dirname + path.sep + 'examples-shiki-classic.txt',
@@ -181,9 +193,24 @@ pass = runTest(md, testData.sampComment, pass)
 pass = runTest(mdHighlightJs, testData.highlightjs, pass)
 pass = runTest(mdLinesEmphasis, testData.linesEmphasis, pass)
 pass = runTest(mdLIneEndSpan, testData.lineEndSpan, pass)
+pass = runTest(md, testData.startInvalid, pass)
+pass = runTest(mdCommentLineMismatch, testData.commentLineMismatch, pass)
 pass = runTest(mdVoidTags, testData.voidTags, pass)
 pass = runTest(mdShiki, testData.shiki, pass)
 pass = runTest(mdShikiClassic, testData.shikiClassic, pass)
 pass = runTest(mdShikiClassicPass, testData.shikiClassicPass, pass)
+
+console.log('===========================================================')
+console.log('mixed-newline-inline')
+const mixedNewlineMarkdown = '```txt {start=\"1\" comment-line=\"#\"}\r\n# a\nline\r\n# b\n```\r\n'
+const mixedNewlineExpected = '<pre><code class=\"language-txt\" data-pre-start=\"1\" data-pre-comment-line=\"#\" style=\"counter-set:pre-line-number 1;\"><span class=\"pre-line\"><span class=\"pre-comment-line\"># a</span></span>\n<span class=\"pre-line\">line</span>\n<span class=\"pre-line\"><span class=\"pre-comment-line\"># b</span></span>\n</code></pre>\n'
+try {
+  assert.strictEqual(md.render(mixedNewlineMarkdown), mixedNewlineExpected)
+  console.log('Test: mixed-newline-inline >>>')
+} catch (e) {
+  pass = false
+  console.log('incorrect:')
+  console.log(md.render(mixedNewlineMarkdown))
+}
 
 if (pass) console.log('Passed all test.')

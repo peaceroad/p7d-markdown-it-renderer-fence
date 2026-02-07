@@ -71,6 +71,7 @@ $ pwd
 ## Add span elements to display line number.
 
 Add `start` or `data-pre-start` attribute by adding attributes used markdown-it-attrs.
+Line numbering is enabled only when `start` is a non-negative integer (`0`, `1`, `2`, ...).
 
 ~~~md
 ```js {start="1"}
@@ -88,6 +89,8 @@ md.render('Nyaan')
 ~~~
 
 CSS example: <https://codepen.io/peaceroad/pen/qBGpYGK>
+
+If `start` is empty or not a non-negative integer (for example `start=""`, `start="abc"`, `start="1.5"`), the attribute is kept as `data-pre-start` but line-number wrapping/counter style is not enabled.
 
 ## Add span elements to add background color to the row ranges.
 
@@ -151,6 +154,8 @@ echo 1
 ~~~
 
 Note: this feature relies on line splitting and is disabled when `useHighlightPre` is true and `<pre><code>` is provided by the highlighter.
+If a highlighter changes logical line count (for example by injecting extra lines), comment-line marking is skipped to avoid wrong line mapping.
+CRLF/LF mixed newlines are supported for logical line-count checks.
 
 
 ## Options
