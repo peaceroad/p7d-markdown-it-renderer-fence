@@ -15,6 +15,28 @@ const voidTags = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'in
 const nonNegativeIntReg = /^\d+$/
 const lineBreakReg = /\r\n|\n|\r/
 
+const createAttrOrderIndexGetter = (order) => {
+  const exact = new Map()
+  const prefixes = []
+  for (let i = 0; i < order.length; i++) {
+    const key = order[i]
+    if (key.endsWith('*')) {
+      prefixes.push([key.slice(0, -1), i])
+    } else if (!exact.has(key)) {
+      exact.set(key, i)
+    }
+  }
+  const fallback = order.length
+  return (name) => {
+    const exactIndex = exact.get(name)
+    if (exactIndex !== undefined) return exactIndex
+    for (let i = 0; i < prefixes.length; i++) {
+      if (name.startsWith(prefixes[i][0])) return prefixes[i][1]
+    }
+    return fallback
+  }
+}
+
 const appendStyleValue = (style, addition) => {
   if (!addition) return style
   let next = addition.trim()
@@ -81,9 +103,23 @@ const parseStartNumber = (val) => {
 }
 
 const getLogicalLineCount = (text) => {
-  const lines = text.split(lineBreakReg)
-  if (lines.length === 0) return 0
-  return lines[lines.length - 1] === '' ? lines.length - 1 : lines.length
+  if (!text) return 0
+  const len = text.length
+  let count = 1
+  for (let i = 0; i < len; i++) {
+    const code = text.charCodeAt(i)
+    if (code === 10) {
+      count++
+      continue
+    }
+    if (code === 13) {
+      count++
+      if (i + 1 < len && text.charCodeAt(i + 1) === 10) i++
+    }
+  }
+  const last = text.charCodeAt(len - 1)
+  if (last === 10 || last === 13) count--
+  return count
 }
 
 const getEmphasizeLines = (attrVal) => {
@@ -116,9 +152,10 @@ const getEmphasizeLines = (attrVal) => {
 const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmphasis, needEndSpan, threshold, lineEndSpanClass, br, commentLines, commentClass) => {
   const lines = content.split(lineBreakReg)
   const len = lines.length
+  const lastLine = len - 1
   const endSpanTag = needEndSpan ? `<span class="${lineEndSpanClass}"></span>` : ''
   const needComment = !!(commentLines && commentClass)
-  const maxLine = len - (lines[len - 1] === '' ? 1 : 0)
+  const maxLine = len - (lines[lastLine] === '' ? 1 : 0)
   let emIdx = 0
   let emStart
   let emEnd
@@ -146,6 +183,7 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
     }
   }
   for (let n = 0; n < len; n++) {
+    const notLastLine = n !== lastLine
     let line = lines[n]
 
     if (needEndSpan) {
@@ -166,7 +204,7 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
       }
     }
 
-    if (needLineNumber && n !== len - 1) {
+    if (needLineNumber && notLastLine) {
       if (line.indexOf('<') !== -1) {
         const tagStack = []
         tagReg.lastIndex = 0
@@ -183,7 +221,7 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
         for (let i = tagStack.length-1; i >= 0; i--) {
           const tagName = tagStack[i]
           line += `</${tagName}>`
-          lines[n+1] = `<${tagName}>` + (lines[n+1]||'')
+          lines[n + 1] = `<${tagName}>` + lines[n + 1]
         }
       }
     }
@@ -192,7 +230,7 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
       line = `<span class="${commentClass}">` + line + closeTag
     }
 
-    if (needLineNumber && n !== len - 1) {
+    if (needLineNumber && notLastLine) {
       line = preLineTag + line + closeTag
     }
 
@@ -201,7 +239,9 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
       if (emEnd === n) {
         line = closeTag + line
         emIdx++
-        [emStart, emEnd] = emphasizeLines[emIdx] || []
+        const nextEmphasis = emphasizeLines[emIdx] || []
+        emStart = nextEmphasis[0]
+        emEnd = nextEmphasis[1]
       }
     }
     lines[n] = line
@@ -228,23 +268,18 @@ const getInfoAttr = (infoAttr) => {
 }
 
 const orderTokenAttrs = (token, opt) => {
-  if (!token.attrs) return
-  const order = opt.attrsOrder || []
-  token.attrs.sort((a, b) => {
-    const idx = (name) => {
-      for (let i = 0; i < order.length; i++) {
-        const key = order[i]
-        if (key.endsWith('*')) {
-          const prefix = key.slice(0, -1)
-          if (name.startsWith(prefix)) return i
-        } else if (name === key) {
-          return i
-        }
-      }
-      return order.length
+  const attrs = token.attrs
+  if (!attrs || attrs.length < 2) return
+  const rankCache = new Map()
+  const getRank = (name) => {
+    let rank = rankCache.get(name)
+    if (rank === undefined) {
+      rank = opt._attrOrderIndex(name)
+      rankCache.set(name, rank)
     }
-    return idx(a[0]) - idx(b[0])
-  })
+    return rank
+  }
+  attrs.sort((a, b) => getRank(a[0]) - getRank(b[0]))
 }
 
 const getFenceHtml = (tokens, idx, md, opt, slf) => {
@@ -394,7 +429,6 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
   const isSamp = opt._sampReg.test(lang)
   let commentLines
   let needComment = false
-  let sourceLogicalLineCount = -1
 
   if (opt.setHighlight && md.options.highlight) {
     if (lang && lang !== 'samp' ) {
@@ -452,25 +486,22 @@ const getFenceHtml = (tokens, idx, md, opt, slf) => {
   const needEndSpan = opt.lineEndSpanThreshold > 0
   const useHighlightPre = opt.useHighlightPre && hasHighlightPre
   if (!useHighlightPre && commentLineValue) {
-    const rawLines = token.content.split(lineBreakReg)
-    sourceLogicalLineCount = getLogicalLineCount(token.content)
-    commentLines = new Array(rawLines.length)
-    for (let i = 0; i < rawLines.length; i++) {
-      const isComment = rawLines[i].trimStart().startsWith(commentLineValue)
-      commentLines[i] = isComment
-      if (isComment) needComment = true
+    const sourceLogicalLineCount = getLogicalLineCount(token.content)
+    const highlightedLogicalLineCount = getLogicalLineCount(content)
+    if (highlightedLogicalLineCount === sourceLogicalLineCount) {
+      const rawLines = token.content.split(lineBreakReg)
+      for (let i = 0; i < rawLines.length; i++) {
+        if (rawLines[i].trimStart().startsWith(commentLineValue)) {
+          if (!commentLines) commentLines = []
+          commentLines[i] = true
+          needComment = true
+        }
+      }
     }
   }
   if (!useHighlightPre && (needLineNumber || needEmphasis || needEndSpan || needComment)) {
     const nlIndex = content.indexOf('\n')
     const br = nlIndex > 0 && content[nlIndex - 1] === '\r' ? '\r\n' : '\n'
-    if (needComment && sourceLogicalLineCount >= 0) {
-      const highlightedLogicalLineCount = getLogicalLineCount(content)
-      if (highlightedLogicalLineCount !== sourceLogicalLineCount) {
-        needComment = false
-        commentLines = undefined
-      }
-    }
     content = splitFenceBlockToLines(content, emphasizeLines, needLineNumber, needEmphasis, needEndSpan, opt.lineEndSpanThreshold, opt.lineEndSpanClass, br, commentLines, commentLineClass)
   }
 
@@ -500,6 +531,7 @@ const mditRendererFence = (md, option) => {
 
   opt._sampReg = new RegExp('^(?:samp|' + opt.sampLang.split(',').join('|') + ')$')
   opt._langReg = new RegExp(opt.langPrefix + '([A-Za-z0-9-]+)')
+  opt._attrOrderIndex = createAttrOrderIndexGetter(opt.attrsOrder || [])
 
   md.renderer.rules['fence'] = (tokens, idx, options, env, slf)  => {
     return getFenceHtml(tokens, idx, md, opt, slf)
