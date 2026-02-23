@@ -240,11 +240,12 @@ const applyShikiKeywordLegacyPostRules = (currentBucket, ctx, helper) => {
   const langKey = String(ctx && ctx.langKey || '')
   const lowerScopeCandidates = Array.isArray(ctx && ctx.lowerScopeCandidates) ? ctx.lowerScopeCandidates : []
   const tokenContent = String(ctx && ctx.tokenContent || '')
-  const trimmed = String(ctx && ctx.tokenTrim || '').trim()
+  const trimmed = String(ctx && ctx.tokenTrim || '')
+  const tokenLower = (ctx && typeof ctx.tokenLower === 'string') ? ctx.tokenLower : trimmed.toLowerCase()
   if (!trimmed) return 'text'
 
   if ((langKey === 'bash' || langKey === 'shellscript') && shikiShellOptionTokenReg.test(trimmed)) {
-    return shikiShellTestOperatorSet.has(trimmed.toLowerCase()) ? 'keyword' : 'literal'
+    return shikiShellTestOperatorSet.has(tokenLower) ? 'keyword' : 'literal'
   }
   if ((langKey === 'hcl' || langKey === 'terraform') && trimmed === '=') return 'keyword'
   if (bucket === 'comment' && trimmed.startsWith('#!')) return 'meta-shebang'
@@ -265,7 +266,7 @@ const applyShikiKeywordLegacyPostRules = (currentBucket, ctx, helper) => {
     if (
       (langKey === 'bash' || langKey === 'shellscript') &&
       hasAnyScopePattern(['constant.other.option'])
-    ) return shikiShellTestOperatorSet.has(trimmed.toLowerCase()) ? 'keyword' : 'literal'
+    ) return shikiShellTestOperatorSet.has(tokenLower) ? 'keyword' : 'literal'
     if (langKey === 'python' && hasAnyScopePattern(['storage.type.string.python'])) return 'keyword'
     if (langKey === 'go' && hasAnyScopePattern(['entity.name.import.go'])) return 'type-name'
     if (hasAnyScopePattern(['keyword.operator.string'])) return 'keyword'
@@ -289,7 +290,7 @@ const applyShikiKeywordLegacyPostRules = (currentBucket, ctx, helper) => {
     if (
       (langKey === 'bash' || langKey === 'shellscript') &&
       hasAnyScopePattern(['constant.other.option'])
-    ) return shikiShellTestOperatorSet.has(trimmed.toLowerCase()) ? 'keyword' : 'literal'
+    ) return shikiShellTestOperatorSet.has(tokenLower) ? 'keyword' : 'literal'
     if (hasAnyScopePattern(['entity.name.tag.yaml'])) return 'tag'
     return 'string'
   }

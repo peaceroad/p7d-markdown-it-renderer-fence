@@ -10,7 +10,10 @@ Architecture:
 - `src/entry/custom-highlight.js` is custom-highlight mode entry (re-exports runtime/payload helpers).
 - `src/fence/render-shared.js` contains shared fence normalization/line-splitting/timing helpers.
 - `src/fence/render-markup.js` contains markup rendering path.
-- `src/fence/render-api.js` contains API mode + runtime helper implementation.
+- `src/fence/render-api.js` is API-mode plugin entry/orchestrator.
+- `src/fence/render-api-provider.js` contains provider normalization + payload generation helpers.
+- `src/fence/render-api-runtime.js` contains runtime apply/observe/clear helpers.
+- `src/fence/render-api-renderer.js` contains API renderer branch + payload transport wiring.
 
 Plugin flow:
 1. Parse fence info string and attrs (`{...}`) and merge into token attrs.
@@ -19,7 +22,7 @@ Plugin flow:
    - Normalize `start`/`pre-start` -> `data-pre-start` and append counter-set style.
    - Normalize `em-lines`/`emphasize-lines` -> `data-pre-emphasis`.
    - Normalize `wrap`/`pre-wrap` -> `data-pre-wrap` + optional inline `preWrapStyle`.
-   - Normalize `comment-line` -> `data-pre-comment-line` for comment markers.
+   - Normalize `comment-mark` -> `data-pre-comment-mark` for comment markers.
 3. Render mode branch:
    - `highlightRenderer: 'api'`:
      - Build payload ranges via `customHighlight.provider` (`shiki` via `highlighter.codeToTokens`, or `custom` via `getRanges`).
@@ -34,11 +37,11 @@ Plugin flow:
    - If `useHighlightPre` is true and parsing fails but `<pre>` exists, passthrough the highlight output as-is.
 5. Apply line features:
    - In markup mode: only when not in highlight-pre passthrough.
-   - In api mode: line features are represented as payload ranges (`em-lines`, `comment-line`), and optional structural spans are controlled by `customHighlight.lineFeatureStrategy`.
-   - `setLineNumber`, `setEmphasizeLines`, `lineEndSpanThreshold`, `comment-line`.
+   - In api mode: line features are represented as payload ranges (`em-lines`, `comment-mark`), and optional structural spans are controlled by `customHighlight.lineFeatureStrategy`.
+   - `setLineNumber`, `setEmphasizeLines`, `lineEndSpanThreshold`, `comment-mark`.
    - Uses `splitFenceBlockToLines` to wrap lines and preserve tag balance (line split accepts CRLF/LF/CR).
-   - `comment-line` pre-scan is intentionally deferred until after `useHighlightPre` decision.
-   - If highlighted output line count does not match source logical line count, `comment-line` markers are skipped to avoid wrong mapping.
+   - `comment-mark` pre-scan is intentionally deferred until after `useHighlightPre` decision.
+   - If highlighted output line count does not match source logical line count, `comment-mark` markers are skipped to avoid wrong mapping.
 6. Render final `<pre><code|samp>` with ordered attrs.
 
 ## Options and compatibility notes
@@ -106,9 +109,9 @@ Plugin flow:
   - `v` is shared across providers by design (`engine` is provenance; runtime consumes one normalized payload shape).
 - `useHighlightPre` keeps highlight-provided `<pre><code>` and disables line-splitting features; `<samp>` conversion is not possible in this mode.
 - `setPreWrapStyle` controls inline style output for pre-wrap; data-pre-wrap is still added.
-- `comment-line` applies to code blocks and relies on line splitting.
+- `comment-mark` applies to code blocks and relies on line splitting.
 - `setEmphasizeLines: false` now skips `em-lines` parsing on the hot path.
-- `comment-line` scanning is skipped when `useHighlightPre` passthrough is active.
+- `comment-mark` scanning is skipped when `useHighlightPre` passthrough is active.
 - `start` line numbering is activated only for non-negative safe integers (`0` is allowed); invalid/empty values keep `data-pre-start` but do not enable counter style or line-number wrapping.
 - Logical line counting for mismatch guards accepts CRLF/LF/CR and is shared for source and highlighted content.
 - markdown-it fence `token.content` is effectively LF-normalized; mismatch guard mainly protects against highlighter-side newline transformation.
@@ -181,7 +184,7 @@ Plugin flow:
     - range boundary invariants
 - passthrough test includes wrap + em-lines to verify attribute merging and disabled line-splitting.
 - start-invalid fixture verifies `start=""`, non-numeric, and decimal inputs do not activate line-number processing.
-- comment-line-mismatch fixture verifies comment marking is skipped when highlighted logical line count diverges from source.
+- comment-mark mismatch fixture (`example-comment-line-mismatch.txt`) verifies comment marking is skipped when highlighted logical line count diverges from source.
 - mixed-newline inline test verifies CRLF/LF mixed markdown still maps line features correctly.
 - mixed-newline case is kept inline in `test/test.js` (not file fixture) to avoid Git line-ending normalization masking the scenario.
 

@@ -1,21 +1,21 @@
 [Markdown]
-```samp {comment-line="#"}
+```samp {comment-mark="#"}
 # comment
 echo 1
   # indented
 ```
 [HTML]
-<pre><samp data-pre-comment-line="#"><span class="pre-comment-line"># comment</span>
+<pre><samp data-pre-comment-mark="#"><span class="pre-line-comment"># comment</span>
 echo 1
-<span class="pre-comment-line">  # indented</span>
+<span class="pre-line-comment">  # indented</span>
 </samp></pre>
 
 [Markdown]
-```js {comment-line="//"}
+```js {comment-mark="//"}
  // comment
 const a = 1
 ```
 [HTML]
-<pre><code class="language-js" data-pre-comment-line="//"><span class="pre-comment-line"> // comment</span>
+<pre><code class="language-js" data-pre-comment-mark="//"><span class="pre-line-comment"> // comment</span>
 const a = 1
 </code></pre>

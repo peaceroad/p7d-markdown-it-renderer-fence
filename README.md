@@ -116,7 +116,7 @@ Note:
 - emphasized lines via `em-lines` / `emphasize-lines`.
 - optional line-end spacer via `lineEndSpanThreshold`.
 - optional pre-wrap support via `wrap` / `pre-wrap`.
-- comment line markers via `comment-line`.
+- comment line markers via `comment-mark`.
 
 ### Fence Attribute Examples
 
@@ -189,15 +189,15 @@ const veryLongLine = '...'
 Comment line marker:
 
 ~~~md
-```samp {comment-line="#"}
+```samp {comment-mark="#"}
 # comment
 echo 1
 ```
 ~~~
 
 ```html
-<pre><samp data-pre-comment-line="#" class="language-samp">
-<span class="pre-comment-line"># comment</span>
+<pre><samp data-pre-comment-mark="#" class="language-samp">
+<span class="pre-line-comment"># comment</span>
 echo 1
 </samp></pre>
 ```
@@ -209,7 +209,7 @@ echo 1
   - line numbers
   - `em-lines`
   - line-end spacer
-  - `comment-line`
+  - `comment-mark`
   - `samp` conversion
 
 ### Markup Options

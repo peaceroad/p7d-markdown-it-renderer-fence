@@ -1584,6 +1584,26 @@ const runEnvReuseResetTest = () => {
   }
 }
 
+const runMarkdownItFenceLfNormalizationTest = () => {
+  console.log('===========================================================')
+  console.log('markdown-it-fence-lf-normalization')
+  try {
+    const mdPlain = mdit({ html: true })
+    const markdown = '```txt\r\na\r\nb\n\rc\n```\r\n'
+    const tokens = mdPlain.parse(markdown, {})
+    const fence = tokens.find((token) => token.type === 'fence')
+    assert.ok(fence)
+    assert.strictEqual(fence.content, 'a\nb\n\nc\n')
+    assert.strictEqual(fence.content.indexOf('\r'), -1)
+    console.log('Test: markdown-it-fence-lf-normalization >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
 let pass = true
 pass = runTest(md, testData.noOption, pass)
 pass = runTest(md, testData.sampComment, pass)
@@ -1600,8 +1620,8 @@ pass = runTest(mdShikiClassicPass, testData.shikiClassicPass, pass)
 
 console.log('===========================================================')
 console.log('mixed-newline-inline')
-const mixedNewlineMarkdown = '```txt {start=\"1\" comment-line=\"#\"}\r\n# a\nline\r\n# b\n```\r\n'
-const mixedNewlineExpected = '<pre><code class=\"language-txt\" data-pre-start=\"1\" data-pre-comment-line=\"#\" style=\"counter-set:pre-line-number 1;\"><span class=\"pre-line\"><span class=\"pre-comment-line\"># a</span></span>\n<span class=\"pre-line\">line</span>\n<span class=\"pre-line\"><span class=\"pre-comment-line\"># b</span></span>\n</code></pre>\n'
+const mixedNewlineMarkdown = '```txt {start=\"1\" comment-mark=\"#\"}\r\n# a\nline\r\n# b\n```\r\n'
+const mixedNewlineExpected = '<pre><code class=\"language-txt\" data-pre-start=\"1\" data-pre-comment-mark=\"#\" style=\"counter-set:pre-line-number 1;\"><span class=\"pre-line\"><span class=\"pre-line-comment\"># a</span></span>\n<span class=\"pre-line\">line</span>\n<span class=\"pre-line\"><span class=\"pre-line-comment\"># b</span></span>\n</code></pre>\n'
 try {
   assert.strictEqual(md.render(mixedNewlineMarkdown), mixedNewlineExpected)
   console.log('Test: mixed-newline-inline >>>')
@@ -1671,6 +1691,7 @@ pass = runCustomHighlightOptionValidationWarnOnceTest() && pass
 pass = runPayloadScriptHelperTest() && pass
 pass = runPayloadSchemaVersionContractTest() && pass
 pass = runEnvReuseResetTest() && pass
+pass = runMarkdownItFenceLfNormalizationTest() && pass
 pass = runRuntimeApiReapplyTest() && pass
 pass = runRuntimeInlineScriptTest() && pass
 pass = runRuntimeIncrementalSkipTest() && pass

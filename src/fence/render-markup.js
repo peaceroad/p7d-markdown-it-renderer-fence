@@ -10,12 +10,13 @@ import {
   finalizeFenceTimings,
   getLogicalLineCount,
   getNowMs,
-  lineBreakReg,
   orderTokenAttrs,
-  preCodeWrapperReg,
   preWrapStyle,
   splitFenceBlockToLines,
 } from './render-shared.js'
+import {
+  parsePreCodeWrapper,
+} from '../utils/pre-code-wrapper-parser.js'
 
 const renderFenceMarkup = (context, md, opt, slf) => {
   const token = context.token
@@ -27,10 +28,11 @@ const renderFenceMarkup = (context, md, opt, slf) => {
   const emphasizeLines = context.emphasizeLines
   const wrapEnabled = context.wrapEnabled
   const preWrapValue = context.preWrapValue
-  const commentLineValue = context.commentLineValue
+  const commentMarkValue = context.commentMarkValue
 
   const isSamp = opt._sampReg.test(lang)
-  let content = token.content
+  const sourceContent = token.content
+  let content = sourceContent
   let commentLines
   let needComment = false
 
@@ -39,23 +41,23 @@ const renderFenceMarkup = (context, md, opt, slf) => {
     if (lang && lang !== 'samp') {
       content = md.options.highlight(content, lang)
     } else {
-      content = md.utils.escapeHtml(token.content)
+      content = md.utils.escapeHtml(sourceContent)
     }
     if (timingEnabled) addTimingMs(timings, 'highlightMs', getNowMs() - highlightStartedAt)
   } else {
-    content = md.utils.escapeHtml(token.content)
+    content = md.utils.escapeHtml(sourceContent)
   }
 
   let preAttrsFromHighlight
   let hasHighlightPre = false
   const hasPreTag = (content.indexOf('<pre') !== -1 || content.indexOf('<PRE') !== -1)
   if (hasPreTag) {
-    const preMatch = content.match(preCodeWrapperReg)
+    const preMatch = parsePreCodeWrapper(content)
     if (preMatch) {
       hasHighlightPre = true
-      preAttrsFromHighlight = parseHtmlAttrs(preMatch[1])
-      const codeAttrsFromHighlight = parseHtmlAttrs(preMatch[2])
-      content = preMatch[3]
+      preAttrsFromHighlight = parseHtmlAttrs(preMatch.preAttrsText)
+      const codeAttrsFromHighlight = parseHtmlAttrs(preMatch.codeAttrsText)
+      content = preMatch.content
       if (codeAttrsFromHighlight.length) {
         if (!token.attrs) token.attrs = []
         mergeAttrSets(token.attrs, codeAttrsFromHighlight)
@@ -68,8 +70,9 @@ const renderFenceMarkup = (context, md, opt, slf) => {
       renderer: 'markup',
       useHighlightPre: true,
       passthrough: true,
+      passthroughReason: 'pre-code-parse-failed',
       hasHighlightPre: false,
-      disabledFeatures: ['setLineNumber', 'setEmphasizeLines', 'lineEndSpanThreshold', 'comment-line', 'samp'],
+      disabledFeatures: ['setLineNumber', 'setEmphasizeLines', 'lineEndSpanThreshold', 'comment-mark', 'samp'],
     }
     if (timingEnabled) decision.timings = finalizeFenceTimings(timings, fenceStartedAt)
     emitFenceDecision(opt, decision)
@@ -103,13 +106,13 @@ const renderFenceMarkup = (context, md, opt, slf) => {
   const needEndSpan = opt.lineEndSpanThreshold > 0
   const useHighlightPre = opt.useHighlightPre && hasHighlightPre
 
-  if (!useHighlightPre && commentLineValue) {
-    const sourceLogicalLineCount = getLogicalLineCount(token.content)
+  if (!useHighlightPre && commentMarkValue && sourceContent.indexOf(commentMarkValue) !== -1) {
+    const sourceLogicalLineCount = getLogicalLineCount(sourceContent)
     const highlightedLogicalLineCount = getLogicalLineCount(content)
     if (highlightedLogicalLineCount === sourceLogicalLineCount) {
-      const rawLines = token.content.indexOf('\r') === -1 ? token.content.split('\n') : token.content.split(lineBreakReg)
+      const rawLines = sourceContent.split('\n')
       for (let i = 0; i < rawLines.length; i++) {
-        if (rawLines[i].trimStart().startsWith(commentLineValue)) {
+        if (rawLines[i].trimStart().startsWith(commentMarkValue)) {
           if (!commentLines) commentLines = []
           commentLines[i] = true
           needComment = true
@@ -142,7 +145,7 @@ const renderFenceMarkup = (context, md, opt, slf) => {
     renderer: 'markup',
     useHighlightPre,
     hasHighlightPre,
-    disabledFeatures: useHighlightPre ? ['setLineNumber', 'setEmphasizeLines', 'lineEndSpanThreshold', 'comment-line', 'samp'] : [],
+    disabledFeatures: useHighlightPre ? ['setLineNumber', 'setEmphasizeLines', 'lineEndSpanThreshold', 'comment-mark', 'samp'] : [],
   }
   if (timingEnabled) decision.timings = finalizeFenceTimings(timings, fenceStartedAt)
   emitFenceDecision(opt, decision)

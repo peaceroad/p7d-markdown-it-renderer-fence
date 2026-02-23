@@ -70,14 +70,14 @@ const cases = [
     mode: 'plain',
     opt: {},
     batch: 80,
-    source: `\`\`\`samp {em-lines="30-120" comment-line="#"}\n${commentCode}\n\`\`\`\n`,
+    source: `\`\`\`samp {em-lines="30-120" comment-mark="#"}\n${commentCode}\n\`\`\`\n`,
   },
   {
     name: 'highlight-pre-pass',
     mode: 'prepass',
     opt: { useHighlightPre: true },
     batch: 120,
-    source: `\`\`\`javascript {start="1" comment-line="#"}\n${longCode}\n\`\`\`\n`,
+    source: `\`\`\`javascript {start="1" comment-mark="#"}\n${longCode}\n\`\`\`\n`,
   },
 ]
 

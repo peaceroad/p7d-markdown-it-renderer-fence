@@ -9,7 +9,7 @@
   "scopes": [
     "hl-keyword-control-flow-js",
     "hl-pre-lines-emphasis",
-    "hl-pre-comment-line"
+    "hl-pre-line-comment"
   ],
   "ranges": [
     [

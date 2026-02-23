@@ -9,14 +9,31 @@ const infoReg = /^([^{\s]*)(?:\s*\{(.*)\})?$/
 const tagReg = /<\/?([A-Za-z][A-Za-z0-9-]*)(?:\s+[^>]*?)?\/?\s*>/g
 const preLineTag = '<span class="pre-line">'
 const emphOpenTag = '<span class="pre-lines-emphasis">'
-const commentLineClass = 'pre-comment-line'
+const commentLineClass = 'pre-line-comment'
 const closeTag = '</span>'
 const closeTagLen = closeTag.length
 const preWrapStyle = 'white-space: pre-wrap; overflow-wrap: anywhere;'
-const preCodeWrapperReg = /^\s*<pre\b((?:[^>"']|"[^"]*"|'[^']*')*)>\s*<code\b((?:[^>"']|"[^"]*"|'[^']*')*)>([\s\S]*?)<\/code>\s*<\/pre>\s*$/i
 const voidTags = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'])
 const nonNegativeIntReg = /^\d+$/
-const lineBreakReg = /\r\n|\n|\r/
+
+const getLineVisualLengthIgnoringTags = (line, threshold) => {
+  let len = 0
+  let inTag = false
+  for (let i = 0; i < line.length; i++) {
+    const code = line.charCodeAt(i)
+    if (inTag) {
+      if (code === 62) inTag = false // >
+      continue
+    }
+    if (code === 60) { // <
+      inTag = true
+      continue
+    }
+    len += code > 255 ? 2 : 1
+    if (len >= threshold) return len
+  }
+  return len
+}
 
 const getNowMs = () => {
   if (typeof performance !== 'undefined' && performance && typeof performance.now === 'function') return performance.now()
@@ -150,21 +167,14 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
     const notLastLine = n < max - 1
     const doEmphasis = needEmphasis && emIdx < emphasizeLines.length && n + 1 >= emStart && n + 1 <= emEnd
     const doComment = commentLines && commentLines[n]
+    const hasLt = line.indexOf('<') !== -1
 
     if (needEndSpan && threshold > 0) {
       let lineLen = 0
-      if (line.indexOf('<') === -1) {
+      if (!hasLt) {
         lineLen = line.length
       } else {
-        const plain = line.replace(/<[^>]*>/g, '')
-        if (/[^\x00-\xff]/.test(plain)) {
-          for (let i = 0, L = plain.length; i < L; i++) {
-            lineLen += plain.charCodeAt(i) > 255 ? 2 : 1
-            if (lineLen >= threshold) break
-          }
-        } else {
-          lineLen = plain.length
-        }
+        lineLen = getLineVisualLengthIgnoringTags(line, threshold)
       }
       if (lineLen >= threshold) {
         if (line.endsWith(closeTag)) {
@@ -176,7 +186,7 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
     }
 
     if (needLineNumber && notLastLine) {
-      if (line.indexOf('<') !== -1 && line.indexOf('>') !== -1) {
+      if (hasLt && line.indexOf('>') !== -1) {
         const tagStack = []
         tagReg.lastIndex = 0
         let match
@@ -245,7 +255,11 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
   const timings = timingEnabled ? {} : null
 
   if (match && match[2]) {
-    getInfoAttr(match[2]).forEach(([name, val]) => token.attrJoin(name, val))
+    const infoAttrs = getInfoAttr(match[2])
+    for (let i = 0; i < infoAttrs.length; i++) {
+      const attr = infoAttrs[i]
+      token.attrJoin(attr[0], attr[1])
+    }
   }
   if (lang && lang !== 'samp') {
     const langClass = opt.langPrefix + lang
@@ -257,7 +271,7 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
   let emphasizeLines = []
   let wrapEnabled = false
   let preWrapValue
-  let commentLineValue
+  let commentMarkValue
   const attrNormalizeStartedAt = timingEnabled ? getNowMs() : 0
 
   if (token.attrs) {
@@ -269,7 +283,7 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
     let startValue
     let emphasisValue
     let styleValue
-    let sawCommentLine = false
+    let sawCommentMark = false
     let sawStartAttr = false
     let sawEmphasisAttr = false
     const appendOrder = []
@@ -309,9 +323,9 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
           dataPreEmphasisIndex = newAttrs.length
           newAttrs.push(attr)
           break
-        case 'data-pre-comment-line':
+        case 'data-pre-comment-mark':
           dataPreCommentIndex = newAttrs.length
-          commentLineValue = val
+          commentMarkValue = val
           newAttrs.push(attr)
           break
         case 'em-lines':
@@ -323,11 +337,11 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
             sawEmphasisAttr = true
           }
           break
-        case 'comment-line':
-          commentLineValue = val
-          if (!sawCommentLine) {
+        case 'comment-mark':
+          commentMarkValue = val
+          if (!sawCommentMark) {
             appendOrder.push('comment')
-            sawCommentLine = true
+            sawCommentMark = true
           }
           break
         case 'data-pre-wrap':
@@ -345,15 +359,15 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
 
     if (startValue !== undefined && dataPreStartIndex >= 0) newAttrs[dataPreStartIndex][1] = startValue
     if (emphasisValue !== undefined && dataPreEmphasisIndex >= 0) newAttrs[dataPreEmphasisIndex][1] = emphasisValue
-    if (commentLineValue !== undefined && dataPreCommentIndex >= 0) newAttrs[dataPreCommentIndex][1] = commentLineValue
+    if (commentMarkValue !== undefined && dataPreCommentIndex >= 0) newAttrs[dataPreCommentIndex][1] = commentMarkValue
 
     for (const kind of appendOrder) {
       if (kind === 'start' && dataPreStartIndex === -1 && startValue !== undefined) {
         newAttrs.push(['data-pre-start', startValue])
       } else if (kind === 'emphasis' && dataPreEmphasisIndex === -1 && emphasisValue !== undefined) {
         newAttrs.push(['data-pre-emphasis', emphasisValue])
-      } else if (kind === 'comment' && dataPreCommentIndex === -1 && commentLineValue !== undefined) {
-        newAttrs.push(['data-pre-comment-line', commentLineValue])
+      } else if (kind === 'comment' && dataPreCommentIndex === -1 && commentMarkValue !== undefined) {
+        newAttrs.push(['data-pre-comment-mark', commentMarkValue])
       }
     }
 
@@ -379,7 +393,7 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
     emphasizeLines,
     wrapEnabled,
     preWrapValue,
-    commentLineValue,
+    commentMarkValue,
     timingEnabled,
     timings,
     fenceStartedAt,
@@ -396,10 +410,8 @@ export {
   getLogicalLineCount,
   getNowMs,
   getEmphasizeLines,
-  lineBreakReg,
   normalizeEmphasisRanges,
   orderTokenAttrs,
-  preCodeWrapperReg,
   preWrapStyle,
   prepareFenceRenderContext,
   splitFenceBlockToLines,

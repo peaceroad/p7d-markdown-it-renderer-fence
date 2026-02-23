@@ -316,10 +316,11 @@ const classifyShikiKeywordByToken = (content, langKey) => {
   return null
 }
 
-const buildShikiKeywordContext = (rawScope, tok, lang, opt, preResolvedLangKey = '') => {
+const buildShikiKeywordContext = (rawScope, tok, lang, opt, preResolvedLangKey = '', tokenContentArg, tokenTrimArg, tokenLowerArg) => {
   const token = (tok && typeof tok === 'object') ? tok : {}
-  const tokenContent = String(token.content || '')
-  const tokenTrim = tokenContent.trim()
+  const tokenContent = (typeof tokenContentArg === 'string') ? tokenContentArg : String(token.content || '')
+  const tokenTrim = (typeof tokenTrimArg === 'string') ? tokenTrimArg : tokenContent.trim()
+  const tokenLower = (typeof tokenLowerArg === 'string') ? tokenLowerArg : tokenTrim.toLowerCase()
   const scopeCandidates = getShikiScopeCandidates(token, rawScope)
   const langKey = preResolvedLangKey || resolveShikiKeywordLang(lang, scopeCandidates, token, opt)
   const lowerScopeCandidates = toLowerScopeCandidates(scopeCandidates)
@@ -333,7 +334,7 @@ const buildShikiKeywordContext = (rawScope, tok, lang, opt, preResolvedLangKey =
     lowerScopeCandidates,
     tokenContent,
     tokenTrim,
-    tokenLower: tokenTrim.toLowerCase(),
+    tokenLower,
     isIdentifier: shikiSimpleIdentifierReg.test(tokenTrim),
     isPunctuation: shikiPunctuationTokenReg.test(tokenTrim),
     hasAnyScopePattern: hasAnyScopePatternCached,
@@ -382,9 +383,21 @@ const resolveShikiKeywordLangForFence = (lang, opt) => {
 }
 
 const classifyShikiScopeKeyword = (rawScope, tok, lang, opt, preResolvedKeywordLang = '') => {
-  const tokenContent = String((tok && tok.content) || '')
-  if (!tokenContent.trim()) return 'text'
-  const context = buildShikiKeywordContext(rawScope, tok, lang, opt, preResolvedKeywordLang)
+  const token = (tok && typeof tok === 'object') ? tok : {}
+  const tokenContent = String(token.content || '')
+  const tokenTrim = tokenContent.trim()
+  if (!tokenTrim) return 'text'
+  const tokenLower = tokenTrim.toLowerCase()
+  const context = buildShikiKeywordContext(
+    rawScope,
+    token,
+    lang,
+    opt,
+    preResolvedKeywordLang,
+    tokenContent,
+    tokenTrim,
+    tokenLower,
+  )
   const baseBucket = classifyShikiScopeKeywordBaseFromContext(context)
   const postHelpers = {
     classifyToken: classifyShikiKeywordByToken,
