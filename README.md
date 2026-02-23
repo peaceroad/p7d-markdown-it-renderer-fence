@@ -230,6 +230,17 @@ echo 1
 - `onFenceDecision` (default: `null`): debug hook for per-fence branch decisions.
 - `onFenceDecisionTiming` (default: `false`): include timing fields in `onFenceDecision`.
 
+`em-lines` syntax note:
+
+- supports single values (`2`) and ranges (`4-6`)
+- supports open-ended forms (`3-`, `-2`)
+- reversed ranges are normalized (`5-3` behaves as `3-5`)
+
+Migration note (`0.5.0`):
+
+- `comment-line` / `data-pre-comment-line` / `pre-comment-line` were removed
+- use `comment-mark` / `data-pre-comment-mark` / `pre-line-comment`
+
 ## Custom Highlight API Mode (Experimental / Advanced)
 
 Custom Highlight API mode renders plain code text and emits range payloads for browser-side Custom Highlight API application.
@@ -340,6 +351,11 @@ const md = MarkdownIt({ html: true })
 - `color`
 - `semantic`
 - `keyword` (best for stable CSS-managed styling)
+
+Migration note (`0.5.0`):
+
+- legacy aliases like `json`, `bucket`, `keyword-only` are removed
+- use canonical values: `auto | color | semantic | keyword`
 
 Recommended production profile for API mode:
 

@@ -39,7 +39,7 @@ Plugin flow:
    - In markup mode: only when not in highlight-pre passthrough.
    - In api mode: line features are represented as payload ranges (`em-lines`, `comment-mark`), and optional structural spans are controlled by `customHighlight.lineFeatureStrategy`.
    - `setLineNumber`, `setEmphasizeLines`, `lineEndSpanThreshold`, `comment-mark`.
-   - Uses `splitFenceBlockToLines` to wrap lines and preserve tag balance (line split accepts CRLF/LF/CR).
+   - Uses `splitFenceBlockToLines` to wrap lines and preserve tag balance (line split path is LF/CRLF-oriented; markdown-it fence content is LF-normalized).
    - `comment-mark` pre-scan is intentionally deferred until after `useHighlightPre` decision.
    - If highlighted output line count does not match source logical line count, `comment-mark` markers are skipped to avoid wrong mapping.
 6. Render final `<pre><code|samp>` with ordered attrs.
@@ -117,6 +117,7 @@ Plugin flow:
 - `setPreWrapStyle` controls inline style output for pre-wrap; data-pre-wrap is still added.
 - `comment-mark` applies to code blocks and relies on line splitting.
 - `setEmphasizeLines: false` now skips `em-lines` parsing on the hot path.
+- `em-lines` parser accepts open-ended ranges (`3-`, `-2`) and normalizes reversed ranges (`5-3` -> `3-5`).
 - `comment-mark` scanning is skipped when `useHighlightPre` passthrough is active.
 - `start` line numbering is activated only for non-negative safe integers (`0` is allowed); invalid/empty values keep `data-pre-start` but do not enable counter style or line-number wrapping.
 - Logical line counting for mismatch guards accepts CRLF/LF/CR and is shared for source and highlighted content.
@@ -193,6 +194,7 @@ Plugin flow:
 - comment-mark mismatch fixture (`example-comment-line-mismatch.txt`) verifies comment marking is skipped when highlighted logical line count diverges from source.
 - mixed-newline inline test verifies CRLF/LF mixed markdown still maps line features correctly.
 - mixed-newline case is kept inline in `test/test.js` (not file fixture) to avoid Git line-ending normalization masking the scenario.
+- `npm test` prints `Passed all test.` only once at the end when all suites succeed.
 
 ## Performance workflow
 - Benchmark script: `test/performance/benchmark.js`
