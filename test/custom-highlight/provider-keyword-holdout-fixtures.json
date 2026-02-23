@@ -1,0 +1,62 @@
+[
+  {
+    "id": "javascript-holdout-advanced",
+    "lang": "javascript",
+    "code": "const registry = new Map([['cat', { score: 10n }]])\nfunction normalize(input = { name: 'cat', tags: ['a', 'b'] }) {\n  const tagText = input.tags?.join(',') ?? 'none'\n  const score = Number(registry.get(input.name)?.score ?? 0n)\n  return `${input.name}:${tagText}:${score}`\n}\nasync function run(flag) {\n  try {\n    const next = await Promise.resolve(flag ? normalize() : 'skip')\n    return { ok: true, next, re: /cat|dog/i.test(next) }\n  } catch (error) {\n    console.error(error?.message ?? 'unknown')\n    return { ok: false, next: null }\n  }\n}\nrun(true).then((x) => console.log(x.next))\n"
+  },
+  {
+    "id": "typescript-holdout-generics",
+    "lang": "typescript",
+    "code": "type Result<T> = { ok: true; value: T } | { ok: false; error: string }\ninterface User { id: number; name: string; roles: string[] }\nconst users: Record<number, User> = { 1: { id: 1, name: 'cat', roles: ['admin'] } }\nfunction pick<K extends keyof User>(u: User, key: K): User[K] { return u[key] }\nfunction findUser(id: number): Result<User> {\n  const user = users[id]\n  return user ? { ok: true, value: user } : { ok: false, error: 'not-found' }\n}\nconst found = findUser(1)\nif (found.ok) {\n  const role = pick(found.value, 'roles')?.[0] ?? 'none'\n  console.log(found.value.name, role)\n} else {\n  console.error(found.error)\n}\n"
+  },
+  {
+    "id": "python-holdout-dataclass",
+    "lang": "python",
+    "code": "from dataclasses import dataclass\nfrom typing import Iterable\n\n@dataclass\nclass Item:\n    name: str\n    score: int\n\ndef normalize(values: Iterable[int]) -> list[int]:\n    total = sum(values) or 1\n    return [round(v * 100 / total) for v in values]\n\nitems = [Item('cat', 3), Item('dog', 7)]\nfor idx, pct in enumerate(normalize([i.score for i in items])):\n    label = f\"{items[idx].name}:{pct!s}\"\n    print(label)\n"
+  },
+  {
+    "id": "go-holdout-types",
+    "lang": "go",
+    "code": "package main\n\nimport \"fmt\"\n\ntype User struct {\n    Name string\n    Active bool\n}\n\nfunc format(u User) string {\n    if u.Active {\n        return fmt.Sprintf(\"%s:%t\", u.Name, u.Active)\n    }\n    return \"inactive\"\n}\n\nfunc main() {\n    users := []User{{Name: \"cat\", Active: true}}\n    for _, u := range users {\n        fmt.Println(format(u))\n    }\n}\n"
+  },
+  {
+    "id": "java-holdout-records",
+    "lang": "java",
+    "code": "import java.util.List;\nimport java.util.stream.Collectors;\n\npublic class App {\n  record User(int id, String name, boolean active) {}\n\n  static List<String> names(List<User> users) {\n    return users.stream()\n      .filter(User::active)\n      .map(u -> u.name().toUpperCase())\n      .collect(Collectors.toList());\n  }\n\n  public static void main(String[] args) {\n    var users = List.of(new User(1, \"cat\", true));\n    System.out.println(names(users));\n  }\n}\n"
+  },
+  {
+    "id": "ruby-holdout-blocks",
+    "lang": "ruby",
+    "code": "class User\n  def initialize(name, score)\n    @name = name\n    @score = score\n  end\n\n  def label(prefix = :item)\n    \"#{prefix}:#{@name}:#{@score}\"\n  end\nend\n\nusers = [User.new('cat', 3), User.new('dog', 7)]\nvisible = users.select { |u| u.label.include?('item') }\nputs visible.map { |u| u.label(:picked) }.join(',')\n"
+  },
+  {
+    "id": "csharp-holdout-records",
+    "lang": "csharp",
+    "code": "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\npublic record User(string Name, bool Active);\n\npublic class App {\n  public static void Main() {\n    var users = new List<User> { new(\"cat\", true), new(\"dog\", false) };\n    var labels = users\n      .Where(u => u.Active)\n      .Select(u => $\"{u.Name}:{u.Active}\")\n      .ToArray();\n    Console.WriteLine(string.Join(\",\", labels));\n  }\n}\n"
+  },
+  {
+    "id": "php-holdout-enum",
+    "lang": "php",
+    "code": "<?php\nenum Status: string {\n  case Active = 'active';\n  case Inactive = 'inactive';\n}\n\nfinal class User {\n  public function __construct(private string $name, private Status $status) {}\n  public function label(): string {\n    return $this->name . ':' . $this->status->value;\n  }\n}\n\n$users = [new User('cat', Status::Active)];\nforeach ($users as $u) {\n  echo $u->label() . PHP_EOL;\n}\n"
+  },
+  {
+    "id": "cpp-holdout-templates",
+    "lang": "cpp",
+    "code": "#include <iostream>\n#include <string>\n#include <vector>\n\ntemplate <typename T>\nT sum(const std::vector<T>& values) {\n  T total{};\n  for (const auto& v : values) total += v;\n  return total;\n}\n\nint main() {\n  std::vector<int> nums{1, 2, 3};\n  std::string tag = \"cat\";\n  std::cout << tag << \":\" << sum(nums) << \"\\n\";\n  return 0;\n}\n"
+  },
+  {
+    "id": "c-holdout-pointers",
+    "lang": "c",
+    "code": "#include <stdio.h>\n#include <stdbool.h>\n\ntypedef struct {\n  const char *name;\n  bool active;\n} user_t;\n\nstatic int sum(const int *values, int n) {\n  int total = 0;\n  for (int i = 0; i < n; i++) total += values[i];\n  return total;\n}\n\nint main(void) {\n  int nums[] = {1, 2, 3};\n  user_t u = {.name = \"cat\", .active = true};\n  printf(\"%s:%d:%d\\n\", u.name, u.active, sum(nums, 3));\n  return 0;\n}\n"
+  },
+  {
+    "id": "sql-holdout-window",
+    "lang": "sql",
+    "code": "WITH ranked AS (\n  SELECT\n    u.id,\n    u.name,\n    ROW_NUMBER() OVER (PARTITION BY u.team ORDER BY u.score DESC) AS rn,\n    CASE WHEN u.active = true THEN 'on' ELSE 'off' END AS state\n  FROM users u\n  WHERE u.deleted_at IS NULL\n)\nSELECT id, name, state\nFROM ranked\nWHERE rn <= 3\nORDER BY id DESC;\n"
+  },
+  {
+    "id": "css-holdout-advanced",
+    "lang": "css",
+    "code": ":root {\n  --brand: #2b6cff;\n  --space: 8px;\n}\n\n.card[data-kind=\"primary\"] {\n  color: var(--brand);\n  margin: calc(var(--space) * 2);\n  background: linear-gradient(90deg, #fff, #f6f8fa);\n}\n\n@media (min-width: 900px) {\n  .card:is(.wide, .hero) { grid-template-columns: 1fr 2fr; }\n}\n"
+  }
+]

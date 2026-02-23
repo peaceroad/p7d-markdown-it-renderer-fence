@@ -1,4 +1,3 @@
-import mditRendererFenceMarkup from './src/entry/markup-highlight.js'
 import mditRendererFenceCustomHighlight, {
   applyCustomHighlights,
   clearCustomHighlights,
@@ -9,17 +8,7 @@ import mditRendererFenceCustomHighlight, {
   renderCustomHighlightPayloadScript,
   renderCustomHighlightScopeStyleTag,
   shouldRuntimeFallback,
-} from './src/entry/custom-highlight.js'
-
-const normalizeHighlightRendererMode = (mode) => {
-  return mode === 'api' ? 'api' : 'markup'
-}
-
-const mditRendererFence = (md, option) => {
-  const mode = normalizeHighlightRendererMode(option && option.highlightRenderer)
-  if (mode === 'api') return mditRendererFenceCustomHighlight(md, option)
-  return mditRendererFenceMarkup(md, option)
-}
+} from '../fence/render-api.js'
 
 export {
   applyCustomHighlights,
@@ -33,4 +22,4 @@ export {
   shouldRuntimeFallback,
 }
 
-export default mditRendererFence
+export default mditRendererFenceCustomHighlight

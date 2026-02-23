@@ -1,0 +1,25 @@
+[Markdown]
+```edge-quoted
+const a = 1
+```
+[HTML]
+<pre data-title="a &gt; b"><code class="language-edge-quoted" data-tip="x &gt; y">const a = 1
+</code></pre>
+
+
+[Markdown]
+```edge-variants
+const a = 1
+```
+[HTML]
+<pre data-a="alpha" data-b="x &gt; y"><code class="language-edge-variants" data-c="1" data-d="two words">const a = 1
+</code></pre>
+
+
+[Markdown]
+```edge-bool {data-x="from-md" style="background:blue;"}
+const a = 1
+```
+[HTML]
+<pre data-flag="" style="color:red" disabled=""><code class="language-edge-bool" data-x="from-md" style="background:blue; font-weight:700;" readonly="">const a = 1
+</code></pre>

@@ -1,0 +1,132 @@
+[
+  {
+    "id": "javascript-rich",
+    "lang": "javascript",
+    "code": "// comment\nclass Greeter {\n  constructor(name) { this.name = name }\n  hello(user) { return `${this.name}:${user}` }\n}\nconst g = new Greeter('cat')\nconsole.log(g.hello('you'), true, null, 42)\n",
+    "expectedCommonBuckets": ["keyword", "string", "number", "comment", "variable", "literal"]
+  },
+  {
+    "id": "typescript-rich",
+    "lang": "typescript",
+    "code": "type User = { id: number; name: string }\nfunction pick(u: User): number { return u.id }\nconst maybe: User | null = { id: 7, name: \"neo\" }\n",
+    "expectedCommonBuckets": ["keyword", "string", "number", "type"],
+    "expectedShikiBuckets": ["variable"],
+    "expectedHljsBuckets": ["literal"]
+  },
+  {
+    "id": "python-rich",
+    "lang": "python",
+    "code": "# comment\ndef add(a, b):\n    return a + b\n\nvalue = add(1, 2)\nif value > 2:\n    print(\"ok\")\n",
+    "expectedCommonBuckets": ["keyword", "string", "number", "comment"]
+  },
+  {
+    "id": "bash-rich",
+    "lang": "bash",
+    "code": "#!/usr/bin/env bash\nname=\"world\"\nif [ -n \"$name\" ]; then\n  echo \"hi $name\"\nfi\n",
+    "expectedCommonBuckets": ["keyword", "string"],
+    "expectedShikiBuckets": ["variable", "meta"]
+  },
+  {
+    "id": "json-rich",
+    "lang": "json",
+    "code": "{\n  \"name\": \"cat\",\n  \"age\": 3,\n  \"active\": true\n}\n",
+    "expectedCommonBuckets": ["string", "number", "punctuation"],
+    "expectedShikiBuckets": ["literal", "type"],
+    "expectedHljsBuckets": ["keyword", "attribute"]
+  },
+  {
+    "id": "html-rich",
+    "lang": "html",
+    "code": "<div class=\"box\" data-id=\"1\">\n  <span>Hello</span>\n</div>\n",
+    "expectedCommonBuckets": ["tag", "attribute", "string"],
+    "expectedShikiBuckets": [],
+    "expectedHljsBuckets": ["text"]
+  },
+  {
+    "id": "css-rich",
+    "lang": "css",
+    "code": ".box { color: #333; margin: 8px; }\n@media (min-width: 600px) { .box { display: grid; } }\n",
+    "expectedCommonBuckets": ["keyword", "number"],
+    "expectedShikiBuckets": ["type", "punctuation"],
+    "expectedHljsBuckets": ["attribute", "text"]
+  },
+  {
+    "id": "yaml-rich",
+    "lang": "yaml",
+    "code": "name: app\nenabled: true\nports:\n  - 3000\n",
+    "expectedCommonBuckets": ["number", "literal", "string"],
+    "expectedShikiBuckets": ["punctuation"],
+    "expectedHljsBuckets": ["attribute", "text"]
+  },
+  {
+    "id": "sql-rich",
+    "lang": "sql",
+    "code": "SELECT id, name FROM users WHERE active = true ORDER BY id DESC;\n",
+    "expectedCommonBuckets": ["keyword"],
+    "expectedShikiBuckets": ["text"],
+    "expectedHljsBuckets": ["literal"]
+  },
+  {
+    "id": "go-rich",
+    "lang": "go",
+    "code": "package main\nimport \"fmt\"\nfunc add(a int, b int) int { return a + b }\nfunc main() { fmt.Println(add(1,2)) }\n",
+    "expectedCommonBuckets": ["keyword", "number", "string", "text", "type", "variable-parameter"],
+    "expectedShikiBuckets": ["punctuation", "title-function"],
+    "expectedHljsBuckets": []
+  },
+  {
+    "id": "rust-rich",
+    "lang": "rust",
+    "code": "fn add(a: i32, b: i32) -> i32 { a + b }\nfn main() { let x = add(1, 2); println!(\"{}\", x); }\n",
+    "expectedCommonBuckets": ["keyword", "number", "string", "type", "variable"],
+    "expectedShikiBuckets": ["text", "title-function"],
+    "expectedHljsBuckets": ["punctuation"]
+  },
+  {
+    "id": "java-rich",
+    "lang": "java",
+    "code": "class App {\n  static int add(int a, int b) { return a + b; }\n  public static void main(String[] args) { System.out.println(add(1,2)); }\n}\n",
+    "expectedCommonBuckets": ["keyword", "number", "title-class", "title-function", "variable-parameter"],
+    "expectedShikiBuckets": ["meta", "punctuation"],
+    "expectedHljsBuckets": ["type"]
+  },
+  {
+    "id": "ruby-rich",
+    "lang": "ruby",
+    "code": "class User\n  def initialize(name)\n    @name = name\n  end\n  def hello(to)\n    puts \"#{@name}-#{to}\"\n  end\nend\nuser = User.new(\"cat\")\nputs user.hello(\"you\")\n",
+    "expectedCommonBuckets": ["keyword", "string", "title-class", "title-function", "variable", "text"],
+    "expectedShikiBuckets": ["punctuation"],
+    "expectedHljsBuckets": ["variable-parameter"]
+  },
+  {
+    "id": "csharp-rich",
+    "lang": "csharp",
+    "code": "using System;\npublic class App {\n  public static int Add(int a, int b) { return a + b; }\n  public static void Main() {\n    var nums = new int[] { 1, 2, 3 };\n    foreach (var n in nums) Console.WriteLine(n);\n    Console.WriteLine(\"ok\");\n  }\n}\n",
+    "expectedCommonBuckets": ["keyword", "number", "string"]
+  },
+  {
+    "id": "php-rich",
+    "lang": "php",
+    "code": "<?php\nclass User {\n  public function __construct(private string $name) {}\n  public function hello(string $to): string {\n    return $this->name . ':' . $to;\n  }\n}\n$u = new User('cat');\necho $u->hello('you');\n",
+    "expectedCommonBuckets": ["keyword", "string"]
+  },
+  {
+    "id": "cpp-rich",
+    "lang": "cpp",
+    "code": "#include <iostream>\n#include <vector>\nint add(int a, int b) { return a + b; }\nint main() {\n  std::vector<int> nums = {1, 2, 3};\n  for (int n : nums) std::cout << n << \"\\n\";\n  if (add(1, 2) > 2) std::cout << \"ok\\n\";\n  return 0;\n}\n",
+    "expectedCommonBuckets": ["keyword", "number", "string"]
+  },
+  {
+    "id": "c-rich",
+    "lang": "c",
+    "code": "#include <stdio.h>\nstatic int add(int a, int b) { return a + b; }\nint main(void) {\n  int nums[3] = {1, 2, 3};\n  for (int i = 0; i < 3; i++) printf(\"%d\\n\", nums[i]);\n  if (add(1, 2) > 2) printf(\"ok\\n\");\n  return 0;\n}\n",
+    "expectedCommonBuckets": ["keyword", "number", "string"]
+  },
+  {
+    "id": "hcl-rich",
+    "lang": "hcl",
+    "providers": ["shiki"],
+    "code": "terraform {\n  required_version = \">= 1.6.0\"\n}\n\nvariable \"name\" {\n  type    = string\n  default = \"cat\"\n}\n\nresource \"null_resource\" \"demo\" {\n  count = 2\n}\n",
+    "expectedCommonBuckets": ["keyword", "string", "number"]
+  }
+]

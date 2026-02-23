@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Custom Highlight API Demo (highlight.js Provider)</title>
+  <style>
+    body { margin: 24px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    pre { padding: 12px; border-radius: 8px; background: #f6f8fa; overflow: auto; }
+
+    /* Scope-based names shared across blocks. */
+    ::highlight(hl-hljs-keyword) { color: #d73a49; }
+    ::highlight(hl-hljs-number) { color: #005cc5; }
+    ::highlight(hl-hljs-variable-language) { color: #e36209; }
+    ::highlight(hl-hljs-title-function) { color: #6f42c1; }
+  </style>
+</head>
+<body>
+  <h1>Custom Highlight API Demo (highlight.js Provider)</h1>
+  <p id="runtime-status"></p>
+  <pre data-pre-highlight="hl-1"><code class="language-javascript">const a = 1
+console.log(a)
+</code></pre>
+
+  <script type="application/json" id="pre-highlight-data">{"hl-1":{"v":1,"engine":"hljs","lang":"javascript","offsetEncoding":"utf16","newline":"lf","textLength":27,"scopes":["hl-hljs-keyword","hl-hljs-number","hl-hljs-variable-language","hl-hljs-title-function"],"ranges":[[0,0,5],[1,10,11],[2,12,19],[3,20,23]]}}</script>
+  <script src="./pre-highlight.js"></script>
+  <script>
+    window.applyPreHighlights({ useScopeStyles: false })
+  </script>
+</body>
+</html>

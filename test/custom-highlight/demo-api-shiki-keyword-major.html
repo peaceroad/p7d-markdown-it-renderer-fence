@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Custom Highlight API Demo (Shiki Keyword Coverage)</title>
+  <style>
+
+    body { margin: 24px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    h1 { margin: 0 0 16px; }
+    h2 { margin: 24px 0 8px; font-size: 20px; }
+    pre { padding: 12px; border-radius: 8px; background: #f6f8fa; overflow: auto; margin: 0 0 12px; }
+
+
+    ::highlight(hl-shiki-keyword) { color: #D73A49; }
+    ::highlight(hl-shiki-number) { color: #005CC5; }
+    ::highlight(hl-shiki-string) { color: #032F62; }
+    ::highlight(hl-shiki-variable) { color: #24292E; }
+    ::highlight(hl-shiki-variable-parameter) { color: #E36209; }
+    ::highlight(hl-shiki-title-function) { color: #6F42C1; }
+    ::highlight(hl-shiki-title-class) { color: #6F42C1; }
+    ::highlight(hl-shiki-literal) { color: #005CC5; }
+    ::highlight(hl-shiki-comment) { color: #6A737D; }
+    ::highlight(hl-shiki-punctuation) { color: #24292E; }
+    ::highlight(hl-shiki-meta) { color: #24292E; }
+    ::highlight(hl-shiki-type) { color: #005CC5; }
+    ::highlight(hl-shiki-tag) { color: #22863A; }
+    ::highlight(hl-shiki-attribute) { color: #6F42C1; }
+
+  </style>
+</head>
+<body>
+  <h1>Custom Highlight API Demo (Shiki Keyword Coverage)</h1>
+  <p id="runtime-status"></p>
+  <h2>javascript-rich</h2>
+<pre data-pre-highlight="hl-1"><code class="language-javascript">// comment
+class Greeter {
+  constructor(name) { this.name = name }
+  hello(user) { return `${this.name}:${user}` }
+}
+const g = new Greeter('cat')
+console.log(g.hello('you'), true, null, 42)
+</code></pre>
+<h2>typescript-rich</h2>
+<pre data-pre-highlight="hl-2"><code class="language-typescript">type User = { id: number; name: string }
+function pick(u: User): number { return u.id }
+const maybe: User | null = { id: 7, name: &quot;neo&quot; }
+</code></pre>
+<h2>python-rich</h2>
+<pre data-pre-highlight="hl-3"><code class="language-python"># comment
+def add(a, b):
+    return a + b
+
+value = add(1, 2)
+if value &gt; 2:
+    print(&quot;ok&quot;)
+</code></pre>
+<h2>bash-rich</h2>
+<pre data-pre-highlight="hl-4"><code class="language-bash">#!/usr/bin/env bash
+name=&quot;world&quot;
+if [ -n &quot;$name&quot; ]; then
+  echo &quot;hi $name&quot;
+fi
+</code></pre>
+<h2>json-rich</h2>
+<pre data-pre-highlight="hl-5"><code class="language-json">{
+  &quot;name&quot;: &quot;cat&quot;,
+  &quot;age&quot;: 3,
+  &quot;active&quot;: true
+}
+</code></pre>
+<h2>html-rich</h2>
+<pre data-pre-highlight="hl-6"><code class="language-html">&lt;div class=&quot;box&quot; data-id=&quot;1&quot;&gt;
+  &lt;span&gt;Hello&lt;/span&gt;
+&lt;/div&gt;
+</code></pre>
+<h2>css-rich</h2>
+<pre data-pre-highlight="hl-7"><code class="language-css">.box { color: #333; margin: 8px; }
+@media (min-width: 600px) { .box { display: grid; } }
+</code></pre>
+<h2>yaml-rich</h2>
+<pre data-pre-highlight="hl-8"><code class="language-yaml">name: app
+enabled: true
+ports:
+  - 3000
+</code></pre>
+<h2>sql-rich</h2>
+<pre data-pre-highlight="hl-9"><code class="language-sql">SELECT id, name FROM users WHERE active = true ORDER BY id DESC;
+</code></pre>
+<h2>go-rich</h2>
+<pre data-pre-highlight="hl-10"><code class="language-go">package main
+import &quot;fmt&quot;
+func add(a int, b int) int { return a + b }
+func main() { fmt.Println(add(1,2)) }
+</code></pre>
+<h2>rust-rich</h2>
+<pre data-pre-highlight="hl-11"><code class="language-rust">fn add(a: i32, b: i32) -&gt; i32 { a + b }
+fn main() { let x = add(1, 2); println!(&quot;{}&quot;, x); }
+</code></pre>
+<h2>java-rich</h2>
+<pre data-pre-highlight="hl-12"><code class="language-java">class App {
+  static int add(int a, int b) { return a + b; }
+  public static void main(String[] args) { System.out.println(add(1,2)); }
+}
+</code></pre>
+<h2>ruby-rich</h2>
+<pre data-pre-highlight="hl-13"><code class="language-ruby">class User
+  def initialize(name)
+    @name = name
+  end
+  def hello(to)
+    puts &quot;#{@name}-#{to}&quot;
+  end
+end
+user = User.new(&quot;cat&quot;)
+puts user.hello(&quot;you&quot;)
+</code></pre>
+<h2>csharp-rich</h2>
+<pre data-pre-highlight="hl-14"><code class="language-csharp">using System;
+public class App {
+  public static int Add(int a, int b) { return a + b; }
+  public static void Main() {
+    var nums = new int[] { 1, 2, 3 };
+    foreach (var n in nums) Console.WriteLine(n);
+    Console.WriteLine(&quot;ok&quot;);
+  }
+}
+</code></pre>
+<h2>php-rich</h2>
+<pre data-pre-highlight="hl-15"><code class="language-php">&lt;?php
+class User {
+  public function __construct(private string $name) {}
+  public function hello(string $to): string {
+    return $this-&gt;name . ':' . $to;
+  }
+}
+$u = new User('cat');
+echo $u-&gt;hello('you');
+</code></pre>
+<h2>cpp-rich</h2>
+<pre data-pre-highlight="hl-16"><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;vector&gt;
+int add(int a, int b) { return a + b; }
+int main() {
+  std::vector&lt;int&gt; nums = {1, 2, 3};
+  for (int n : nums) std::cout &lt;&lt; n &lt;&lt; &quot;\n&quot;;
+  if (add(1, 2) &gt; 2) std::cout &lt;&lt; &quot;ok\n&quot;;
+  return 0;
+}
+</code></pre>
+<h2>c-rich</h2>
+<pre data-pre-highlight="hl-17"><code class="language-c">#include &lt;stdio.h&gt;
+static int add(int a, int b) { return a + b; }
+int main(void) {
+  int nums[3] = {1, 2, 3};
+  for (int i = 0; i &lt; 3; i++) printf(&quot;%d\n&quot;, nums[i]);
+  if (add(1, 2) &gt; 2) printf(&quot;ok\n&quot;);
+  return 0;
+}
+</code></pre>
+<h2>hcl-rich</h2>
+<pre data-pre-highlight="hl-18"><code class="language-hcl">terraform {
+  required_version = &quot;&gt;= 1.6.0&quot;
+}
+
+variable &quot;name&quot; {
+  type    = string
+  default = &quot;cat&quot;
+}
+
+resource &quot;null_resource&quot; &quot;demo&quot; {
+  count = 2
+}
+</code></pre>
+
+  <script type="application/json" id="pre-highlight-data">{"hl-1":{"v":1,"engine":"shiki","lang":"javascript","offsetEncoding":"utf16","newline":"lf","textLength":191,"scopes":["hl-shiki-comment","hl-shiki-keyword","hl-shiki-text","hl-shiki-title-class","hl-shiki-punctuation","hl-shiki-variable-parameter","hl-shiki-variable-this","hl-shiki-variable-member","hl-shiki-title-function","hl-shiki-string","hl-shiki-variable-plain","hl-shiki-variable-const","hl-shiki-literal","hl-shiki-number"],"ranges":[[0,0,10],[1,11,16],[2,16,17],[3,17,24],[4,24,26],[2,27,29],[1,29,40],[4,40,41],[5,41,45],[4,45,49],[6,49,53],[7,53,59],[1,59,60],[4,60,67],[2,68,70],[8,70,75],[4,75,76],[5,76,80],[4,80,84],[1,84,90],[2,90,91],[9,91,94],[6,94,98],[9,98,99],[10,99,103],[9,103,107],[10,107,111],[9,111,113],[4,113,115],[4,116,117],[1,118,123],[2,123,124],[11,124,125],[2,125,126],[1,126,127],[2,127,128],[1,128,131],[2,131,132],[8,132,139],[4,139,140],[9,140,145],[4,145,146],[4,147,155],[8,155,158],[4,158,161],[8,161,166],[4,166,167],[9,167,172],[4,172,175],[12,175,179],[4,179,181],[12,181,185],[4,185,187],[13,187,189],[4,189,190]]},"hl-2":{"v":1,"engine":"shiki","lang":"typescript","offsetEncoding":"utf16","newline":"lf","textLength":138,"scopes":["hl-shiki-keyword","hl-shiki-text","hl-shiki-type-name","hl-shiki-punctuation","hl-shiki-variable-property","hl-shiki-type","hl-shiki-title-function","hl-shiki-variable-parameter","hl-shiki-variable-member","hl-shiki-variable-const","hl-shiki-number","hl-shiki-string"],"ranges":[[0,0,4],[1,4,5],[2,5,9],[1,9,10],[0,10,11],[3,11,14],[4,14,16],[0,16,17],[1,17,18],[5,18,24],[3,24,26],[4,26,30],[0,30,31],[1,31,32],[5,32,38],[3,38,40],[0,41,49],[1,49,50],[6,50,54],[3,54,55],[7,55,56],[0,56,57],[1,57,58],[2,58,62],[3,62,63],[0,63,64],[1,64,65],[5,65,71],[3,71,74],[0,74,80],[8,80,87],[0,88,93],[1,93,94],[9,94,99],[0,99,100],[1,100,101],[2,101,105],[1,105,106],[0,106,107],[1,107,108],[5,108,112],[1,112,113],[0,113,114],[3,114,121],[10,121,122],[3,122,130],[11,130,135],[3,135,137]]},"hl-3":{"v":1,"engine":"shiki","lang":"python","offsetEncoding":"utf16","newline":"lf","textLength":91,"scopes":["hl-shiki-comment","hl-shiki-keyword","hl-shiki-text","hl-shiki-title-function","hl-shiki-punctuation","hl-shiki-variable-plain","hl-shiki-number","hl-shiki-title-function-builtin","hl-shiki-string"],"ranges":[[0,0,9],[1,10,13],[2,13,14],[3,14,17],[4,17,24],[2,25,29],[1,29,35],[5,35,38],[1,38,39],[5,39,41],[5,43,49],[1,49,50],[4,50,55],[6,55,56],[4,56,58],[6,58,59],[4,59,60],[1,61,63],[5,63,70],[1,70,71],[2,71,72],[6,72,73],[4,73,74],[2,75,79],[7,79,84],[4,84,85],[8,85,89],[4,89,90]]},"hl-4":{"v":1,"engine":"shiki","lang":"bash","offsetEncoding":"utf16","newline":"lf","textLength":78,"scopes":["hl-shiki-meta-shebang","hl-shiki-variable-plain","hl-shiki-keyword","hl-shiki-string","hl-shiki-punctuation","hl-shiki-text","hl-shiki-title-function-builtin"],"ranges":[[0,0,19],[1,20,24],[2,24,25],[3,25,32],[2,33,35],[4,35,38],[2,38,40],[5,40,41],[3,41,42],[1,42,47],[3,47,48],[4,48,52],[2,52,56],[5,57,59],[6,59,63],[5,63,64],[3,64,68],[1,68,73],[3,73,74],[2,75,77]]},"hl-5":{"v":1,"engine":"shiki","lang":"json","offsetEncoding":"utf16","newline":"lf","textLength":50,"scopes":["hl-shiki-punctuation","hl-shiki-text","hl-shiki-type","hl-shiki-string","hl-shiki-number","hl-shiki-literal"],"ranges":[[0,0,1],[1,2,4],[2,4,10],[0,10,12],[3,12,17],[0,17,18],[1,19,21],[2,21,26],[0,26,28],[4,28,29],[0,29,30],[1,31,33],[2,33,41],[0,41,43],[5,43,47],[0,48,49]]},"hl-6":{"v":1,"engine":"shiki","lang":"html","offsetEncoding":"utf16","newline":"lf","textLength":58,"scopes":["hl-shiki-tag-delimiter","hl-shiki-tag","hl-shiki-text","hl-shiki-attribute","hl-shiki-string"],"ranges":[[0,0,1],[1,1,4],[2,4,5],[3,5,10],[0,10,11],[4,11,16],[2,16,17],[3,17,24],[0,24,25],[4,25,28],[0,28,29],[0,30,33],[1,33,37],[0,37,45],[1,45,49],[0,49,50],[0,51,53],[1,53,56],[0,56,57]]},"hl-7":{"v":1,"engine":"shiki","lang":"css","offsetEncoding":"utf16","newline":"lf","textLength":89,"scopes":["hl-shiki-attribute","hl-shiki-punctuation","hl-shiki-type","hl-shiki-number","hl-shiki-keyword"],"ranges":[[0,0,4],[1,4,7],[2,7,12],[1,12,14],[3,14,18],[1,18,20],[2,20,26],[1,26,28],[3,28,29],[4,29,31],[1,31,34],[4,35,41],[1,41,43],[2,43,52],[1,52,54],[3,54,57],[4,57,59],[1,59,63],[0,63,67],[1,67,70],[2,70,77],[1,77,79],[3,79,83],[1,83,88]]},"hl-8":{"v":1,"engine":"shiki","lang":"yaml","offsetEncoding":"utf16","newline":"lf","textLength":40,"scopes":["hl-shiki-tag","hl-shiki-punctuation","hl-shiki-string","hl-shiki-literal","hl-shiki-number"],"ranges":[[0,0,4],[1,4,6],[2,6,9],[0,10,17],[1,17,19],[3,19,23],[0,24,29],[1,29,30],[1,31,35],[4,35,39]]},"hl-9":{"v":1,"engine":"shiki","lang":"sql","offsetEncoding":"utf16","newline":"lf","textLength":65,"scopes":["hl-shiki-keyword","hl-shiki-text","hl-shiki-variable-plain","hl-shiki-punctuation"],"ranges":[[0,0,6],[1,6,11],[0,11,15],[1,15,16],[0,16,20],[2,20,27],[0,27,32],[2,32,40],[0,40,41],[2,41,47],[0,47,55],[2,55,59],[0,59,63],[3,63,64]]},"hl-10":{"v":1,"engine":"shiki","lang":"go","offsetEncoding":"utf16","newline":"lf","textLength":108,"scopes":["hl-shiki-keyword","hl-shiki-text","hl-shiki-type-name","hl-shiki-string","hl-shiki-title-function","hl-shiki-punctuation","hl-shiki-variable-parameter","hl-shiki-variable-plain","hl-shiki-number"],"ranges":[[0,0,7],[1,7,8],[2,8,12],[0,13,19],[1,19,20],[3,20,21],[2,21,24],[3,24,25],[0,26,30],[1,30,31],[4,31,34],[5,34,35],[6,35,36],[1,36,37],[0,37,40],[5,40,42],[6,42,43],[1,43,44],[0,44,47],[5,47,49],[0,49,52],[5,52,55],[0,55,61],[7,61,64],[0,64,65],[5,65,69],[0,70,74],[1,74,75],[4,75,79],[5,79,88],[4,88,95],[5,95,96],[4,96,99],[5,99,100],[8,100,101],[5,101,102],[8,102,103],[5,103,107]]},"hl-11":{"v":1,"engine":"shiki","lang":"rust","offsetEncoding":"utf16","newline":"lf","textLength":92,"scopes":["hl-shiki-keyword","hl-shiki-text","hl-shiki-title-function","hl-shiki-punctuation","hl-shiki-type-name","hl-shiki-variable-plain","hl-shiki-number","hl-shiki-string"],"ranges":[[0,0,2],[1,2,3],[2,3,6],[3,6,8],[0,8,9],[1,9,10],[4,10,13],[3,13,16],[0,16,17],[1,17,18],[4,18,21],[3,21,23],[0,23,25],[1,25,26],[4,26,29],[3,29,34],[0,34,35],[3,35,39],[0,40,42],[1,42,43],[2,43,47],[3,47,52],[0,52,55],[5,55,58],[0,58,59],[1,59,60],[2,60,63],[3,63,64],[6,64,65],[3,65,67],[6,67,68],[3,68,71],[2,71,79],[3,79,80],[7,80,84],[3,84,91]]},"hl-12":{"v":1,"engine":"shiki","lang":"java","offsetEncoding":"utf16","newline":"lf","textLength":138,"scopes":["hl-shiki-keyword","hl-shiki-text","hl-shiki-title-class","hl-shiki-punctuation","hl-shiki-title-function","hl-shiki-variable-parameter","hl-shiki-meta","hl-shiki-number"],"ranges":[[0,0,5],[1,5,6],[2,6,9],[3,9,11],[1,12,14],[0,14,20],[1,20,21],[0,21,24],[1,24,25],[4,25,28],[3,28,29],[0,29,32],[1,32,33],[5,33,34],[3,34,36],[0,36,39],[1,39,40],[5,40,41],[3,41,45],[0,45,51],[6,51,54],[0,54,55],[3,55,60],[1,61,63],[0,63,69],[1,69,70],[0,70,76],[1,76,77],[0,77,81],[1,81,82],[4,82,86],[3,86,87],[0,87,93],[3,93,96],[5,96,100],[3,100,115],[4,115,122],[3,122,123],[4,123,126],[3,126,127],[7,127,128],[3,128,129],[7,129,130],[3,130,135],[3,136,137]]},"hl-13":{"v":1,"engine":"shiki","lang":"ruby","offsetEncoding":"utf16","newline":"lf","textLength":155,"scopes":["hl-shiki-keyword","hl-shiki-text","hl-shiki-title-class","hl-shiki-title-function","hl-shiki-punctuation","hl-shiki-variable-member","hl-shiki-variable-plain","hl-shiki-title-function-builtin","hl-shiki-string","hl-shiki-variable","hl-shiki-type"],"ranges":[[0,0,5],[1,5,6],[2,6,10],[1,11,13],[0,13,16],[1,16,17],[3,17,27],[4,27,33],[5,34,44],[0,44,45],[6,45,50],[1,51,53],[0,53,56],[1,57,59],[0,59,62],[1,62,63],[3,63,68],[4,68,72],[1,73,77],[7,77,81],[1,81,82],[8,82,83],[8,83,85],[6,85,90],[8,90,91],[8,91,92],[8,92,97],[8,97,98],[1,99,101],[0,101,104],[0,105,108],[9,109,113],[1,113,114],[0,114,115],[1,115,116],[10,116,120],[4,120,121],[0,121,124],[4,124,125],[8,125,130],[4,130,131],[7,132,136],[4,136,142],[3,142,147],[4,147,148],[8,148,153],[4,153,154]]},"hl-14":{"v":1,"engine":"shiki","lang":"csharp","offsetEncoding":"utf16","newline":"lf","textLength":242,"scopes":["hl-shiki-keyword","hl-shiki-text","hl-shiki-type-name","hl-shiki-punctuation","hl-shiki-title-class","hl-shiki-title-function","hl-shiki-variable-plain","hl-shiki-number","hl-shiki-string"],"ranges":[[0,0,5],[1,5,6],[2,6,12],[3,12,13],[0,14,20],[1,20,21],[0,21,26],[1,26,27],[4,27,30],[3,30,32],[1,33,35],[0,35,41],[1,41,42],[0,42,48],[1,48,49],[0,49,52],[1,52,53],[5,53,56],[3,56,57],[0,57,60],[1,60,61],[2,61,62],[3,62,64],[0,64,67],[1,67,68],[2,68,69],[3,69,73],[0,73,79],[6,79,82],[0,82,83],[3,83,88],[1,89,91],[0,91,97],[1,97,98],[0,98,104],[1,104,105],[0,105,109],[1,109,110],[5,110,114],[3,114,118],[1,119,123],[0,123,126],[1,126,127],[2,127,131],[1,131,132],[0,132,133],[1,133,134],[0,134,137],[1,137,138],[0,138,141],[3,141,146],[7,146,147],[3,147,149],[7,149,150],[3,150,152],[7,152,153],[3,153,156],[1,157,161],[0,161,168],[3,168,170],[0,170,173],[1,173,174],[2,174,175],[1,175,176],[0,176,178],[3,178,193],[5,193,202],[3,202,206],[3,207,219],[5,219,228],[3,228,229],[8,229,233],[3,233,235],[3,236,239],[3,240,241]]},"hl-15":{"v":1,"engine":"shiki","lang":"php","offsetEncoding":"utf16","newline":"lf","textLength":207,"scopes":["hl-shiki-keyword","hl-shiki-variable-const","hl-shiki-text","hl-shiki-title-class","hl-shiki-punctuation","hl-shiki-title-function-builtin","hl-shiki-title-function","hl-shiki-variable-this","hl-shiki-variable-member","hl-shiki-string","hl-shiki-variable-plain","hl-shiki-type"],"ranges":[[0,0,2],[1,2,5],[0,6,11],[2,11,12],[3,12,16],[4,16,18],[2,19,21],[0,21,27],[2,27,28],[0,28,36],[2,36,37],[5,37,48],[4,48,49],[0,49,56],[2,56,57],[0,57,63],[4,63,73],[2,74,76],[0,76,82],[2,82,83],[0,83,91],[2,91,92],[6,92,97],[4,97,98],[0,98,104],[4,104,109],[0,109,110],[2,110,111],[0,111,117],[4,117,119],[2,120,124],[0,124,130],[2,130,131],[7,131,136],[0,136,138],[8,138,143],[0,143,144],[2,144,145],[9,145,148],[2,148,149],[0,149,150],[4,150,155],[4,156,159],[4,160,161],[10,162,165],[0,165,166],[2,166,167],[0,167,170],[2,170,171],[11,171,175],[4,175,176],[9,176,181],[4,181,183],[5,184,188],[10,188,191],[0,191,193],[6,193,198],[4,198,199],[9,199,204],[4,204,206]]},"hl-16":{"v":1,"engine":"shiki","lang":"cpp","offsetEncoding":"utf16","newline":"lf","textLength":229,"scopes":["hl-shiki-keyword","hl-shiki-text","hl-shiki-string","hl-shiki-title-function","hl-shiki-punctuation","hl-shiki-variable-parameter","hl-shiki-namespace","hl-shiki-number"],"ranges":[[0,0,8],[1,8,9],[2,9,19],[0,20,28],[1,28,29],[2,29,37],[0,38,41],[1,41,42],[3,42,45],[4,45,46],[0,46,49],[1,49,50],[5,50,51],[4,51,53],[0,53,56],[1,56,57],[5,57,58],[4,58,62],[0,62,68],[4,68,71],[0,71,72],[4,72,77],[0,78,81],[1,81,82],[3,82,86],[4,86,90],[1,91,93],[6,93,96],[4,96,104],[0,104,109],[4,109,115],[0,115,116],[4,116,118],[7,118,119],[4,119,121],[7,121,122],[4,122,124],[7,124,125],[4,125,127],[1,128,130],[0,130,133],[4,133,135],[0,135,138],[4,138,149],[6,149,152],[4,152,159],[0,159,161],[4,161,164],[0,164,166],[1,166,167],[2,167,168],[7,168,170],[2,170,171],[4,171,172],[1,173,175],[0,175,177],[4,177,179],[3,179,182],[4,182,183],[7,183,184],[4,184,186],[7,186,187],[4,187,189],[0,189,190],[1,190,191],[7,191,192],[4,192,194],[6,194,197],[4,197,204],[0,204,206],[1,206,207],[2,207,210],[7,210,212],[2,212,213],[4,213,214],[1,215,217],[0,217,223],[1,223,224],[7,224,225],[4,225,226],[4,227,228]]},"hl-17":{"v":1,"engine":"shiki","lang":"c","offsetEncoding":"utf16","newline":"lf","textLength":216,"scopes":["hl-shiki-keyword","hl-shiki-text","hl-shiki-string","hl-shiki-type-primitive","hl-shiki-title-function","hl-shiki-punctuation","hl-shiki-variable-parameter","hl-shiki-meta","hl-shiki-number","hl-shiki-literal"],"ranges":[[0,0,8],[1,8,9],[2,9,18],[0,19,25],[1,25,26],[3,26,29],[1,29,30],[4,30,33],[5,33,34],[3,34,37],[1,37,38],[6,38,39],[5,39,41],[3,41,44],[1,44,45],[6,45,46],[5,46,50],[0,50,56],[7,56,59],[0,59,60],[5,60,65],[3,66,69],[1,69,70],[4,70,74],[5,74,75],[3,75,79],[5,79,82],[1,83,85],[3,85,88],[1,88,89],[6,89,93],[5,93,94],[8,94,95],[5,95,97],[0,97,98],[5,98,100],[8,100,101],[5,101,103],[8,103,104],[5,104,106],[8,106,107],[5,107,109],[1,110,112],[0,112,115],[5,115,117],[3,117,120],[7,120,123],[0,123,124],[1,124,125],[8,125,126],[5,126,130],[0,130,131],[1,131,132],[8,132,133],[5,133,136],[0,136,138],[5,138,140],[4,140,146],[5,146,147],[2,147,148],[9,148,152],[2,152,153],[5,153,155],[6,155,159],[5,159,164],[1,165,167],[0,167,169],[5,169,171],[4,171,174],[5,174,175],[8,175,176],[5,176,178],[8,178,179],[5,179,181],[0,181,182],[1,182,183],[8,183,184],[5,184,186],[4,186,192],[5,192,193],[2,193,196],[8,196,198],[2,198,199],[5,199,201],[1,202,204],[0,204,210],[1,210,211],[8,211,212],[5,212,213],[5,214,215]]},"hl-18":{"v":1,"engine":"shiki","lang":"hcl","offsetEncoding":"utf16","newline":"lf","textLength":153,"scopes":["hl-shiki-title-class","hl-shiki-punctuation","hl-shiki-variable-plain","hl-shiki-text","hl-shiki-keyword","hl-shiki-string","hl-shiki-variable-const","hl-shiki-number"],"ranges":[[0,0,9],[1,9,11],[2,12,30],[3,30,31],[4,31,32],[3,32,33],[5,33,43],[1,44,45],[0,47,55],[3,55,56],[6,56,62],[1,62,64],[2,65,71],[3,71,75],[4,75,76],[3,76,77],[4,77,83],[2,84,93],[3,93,94],[4,94,95],[3,95,96],[5,96,101],[1,102,103],[0,105,113],[3,113,114],[6,114,129],[3,129,130],[6,130,136],[1,136,138],[2,139,146],[3,146,147],[4,147,148],[3,148,149],[7,149,150],[1,151,152]]}}</script>
+  <script src="./pre-highlight.js"></script>
+  <script>
+    window.applyPreHighlights({ useScopeStyles: false })
+  </script>
+</body>
+</html>

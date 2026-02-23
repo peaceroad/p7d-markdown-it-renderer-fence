@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Custom Highlight API Demo (Shiki Provider / CSS-managed)</title>
+  <style>
+    body { margin: 24px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    pre { padding: 12px; border-radius: 8px; background: #f6f8fa; overflow: auto; }
+
+    /* Semantic scope-based CSS managed outside payload scopeStyles. */
+    ::highlight(hl-shiki-storage-type-js) { color: #D73A49; }
+    ::highlight(hl-shiki-meta-var-expr-js) { color: #24292E; }
+    ::highlight(hl-shiki-variable-other-constant-js) { color: #005CC5; }
+    ::highlight(hl-shiki-meta-var-single-variable-expr-js) { color: #24292E; }
+    ::highlight(hl-shiki-keyword-operator-assignment-js) { color: #D73A49; }
+    ::highlight(hl-shiki-constant-numeric-decimal-js) { color: #005CC5; }
+    ::highlight(hl-shiki-punctuation-accessor-js) { color: #24292E; }
+    ::highlight(hl-shiki-entity-name-function-js) { color: #6F42C1; }
+    ::highlight(hl-shiki-meta-brace-round-js) { color: #24292E; }
+  </style>
+</head>
+<body>
+  <h1>Custom Highlight API Demo (Shiki Provider / CSS-managed)</h1>
+  <p id="runtime-status"></p>
+  <pre data-pre-highlight="hl-1"><code class="language-javascript">const a = 1
+console.log(a)
+</code></pre>
+
+  <script type="application/json" id="pre-highlight-data">{"hl-1":{"v":1,"engine":"shiki","lang":"javascript","offsetEncoding":"utf16","newline":"lf","textLength":27,"scopes":["hl-shiki-storage-type-js","hl-shiki-meta-var-expr-js","hl-shiki-variable-other-constant-js","hl-shiki-meta-var-single-variable-expr-js","hl-shiki-keyword-operator-assignment-js","hl-shiki-constant-numeric-decimal-js","hl-shiki-punctuation-accessor-js","hl-shiki-entity-name-function-js","hl-shiki-meta-brace-round-js"],"ranges":[[0,0,5],[1,5,6],[2,6,7],[3,7,8],[4,8,9],[1,9,10],[5,10,11],[6,12,20],[7,20,23],[8,23,26]]}}</script>
+  <script src="./pre-highlight.js"></script>
+  <script>
+    window.applyPreHighlights({ useScopeStyles: false })
+  </script>
+</body>
+</html>

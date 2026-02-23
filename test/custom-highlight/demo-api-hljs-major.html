@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Custom Highlight API Demo (highlight.js Coverage)</title>
+  <style>
+
+    body { margin: 24px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    h1 { margin: 0 0 16px; }
+    h2 { margin: 24px 0 8px; font-size: 20px; }
+    pre { padding: 12px; border-radius: 8px; background: #f6f8fa; overflow: auto; margin: 0 0 12px; }
+
+
+    ::highlight(hl-hljs-keyword) { color: #D73A49; }
+    ::highlight(hl-hljs-number) { color: #005CC5; }
+    ::highlight(hl-hljs-string) { color: #032F62; }
+    ::highlight(hl-hljs-comment) { color: #6A737D; }
+    ::highlight(hl-hljs-literal) { color: #005CC5; }
+    ::highlight(hl-hljs-title-function) { color: #6F42C1; }
+    ::highlight(hl-hljs-title-class) { color: #6F42C1; }
+    ::highlight(hl-hljs-variable) { color: #24292E; }
+    ::highlight(hl-hljs-variable-language) { color: #24292E; }
+    ::highlight(hl-hljs-punctuation) { color: #24292E; }
+    ::highlight(hl-hljs-tag) { color: #22863A; }
+    ::highlight(hl-hljs-attr) { color: #6F42C1; }
+    ::highlight(hl-hljs-attribute) { color: #6F42C1; }
+
+  </style>
+</head>
+<body>
+  <h1>Custom Highlight API Demo (highlight.js Coverage)</h1>
+  <p id="runtime-status"></p>
+  <h2>javascript-rich</h2>
+<pre data-pre-highlight="hl-1"><code class="language-javascript">// comment
+class Greeter {
+  constructor(name) { this.name = name }
+  hello(user) { return `${this.name}:${user}` }
+}
+const g = new Greeter('cat')
+console.log(g.hello('you'), true, null, 42)
+</code></pre>
+<h2>typescript-rich</h2>
+<pre data-pre-highlight="hl-2"><code class="language-typescript">type User = { id: number; name: string }
+function pick(u: User): number { return u.id }
+const maybe: User | null = { id: 7, name: &quot;neo&quot; }
+</code></pre>
+<h2>python-rich</h2>
+<pre data-pre-highlight="hl-3"><code class="language-python"># comment
+def add(a, b):
+    return a + b
+
+value = add(1, 2)
+if value &gt; 2:
+    print(&quot;ok&quot;)
+</code></pre>
+<h2>bash-rich</h2>
+<pre data-pre-highlight="hl-4"><code class="language-bash">#!/usr/bin/env bash
+name=&quot;world&quot;
+if [ -n &quot;$name&quot; ]; then
+  echo &quot;hi $name&quot;
+fi
+</code></pre>
+<h2>json-rich</h2>
+<pre data-pre-highlight="hl-5"><code class="language-json">{
+  &quot;name&quot;: &quot;cat&quot;,
+  &quot;age&quot;: 3,
+  &quot;active&quot;: true
+}
+</code></pre>
+<h2>html-rich</h2>
+<pre data-pre-highlight="hl-6"><code class="language-html">&lt;div class=&quot;box&quot; data-id=&quot;1&quot;&gt;
+  &lt;span&gt;Hello&lt;/span&gt;
+&lt;/div&gt;
+</code></pre>
+<h2>css-rich</h2>
+<pre data-pre-highlight="hl-7"><code class="language-css">.box { color: #333; margin: 8px; }
+@media (min-width: 600px) { .box { display: grid; } }
+</code></pre>
+<h2>yaml-rich</h2>
+<pre data-pre-highlight="hl-8"><code class="language-yaml">name: app
+enabled: true
+ports:
+  - 3000
+</code></pre>
+<h2>sql-rich</h2>
+<pre data-pre-highlight="hl-9"><code class="language-sql">SELECT id, name FROM users WHERE active = true ORDER BY id DESC;
+</code></pre>
+<h2>go-rich</h2>
+<pre data-pre-highlight="hl-10"><code class="language-go">package main
+import &quot;fmt&quot;
+func add(a int, b int) int { return a + b }
+func main() { fmt.Println(add(1,2)) }
+</code></pre>
+<h2>rust-rich</h2>
+<pre data-pre-highlight="hl-11"><code class="language-rust">fn add(a: i32, b: i32) -&gt; i32 { a + b }
+fn main() { let x = add(1, 2); println!(&quot;{}&quot;, x); }
+</code></pre>
+<h2>java-rich</h2>
+<pre data-pre-highlight="hl-12"><code class="language-java">class App {
+  static int add(int a, int b) { return a + b; }
+  public static void main(String[] args) { System.out.println(add(1,2)); }
+}
+</code></pre>
+<h2>ruby-rich</h2>
+<pre data-pre-highlight="hl-13"><code class="language-ruby">class User
+  def initialize(name)
+    @name = name
+  end
+  def hello(to)
+    puts &quot;#{@name}-#{to}&quot;
+  end
+end
+user = User.new(&quot;cat&quot;)
+puts user.hello(&quot;you&quot;)
+</code></pre>
+<h2>csharp-rich</h2>
+<pre data-pre-highlight="hl-14"><code class="language-csharp">using System;
+public class App {
+  public static int Add(int a, int b) { return a + b; }
+  public static void Main() {
+    var nums = new int[] { 1, 2, 3 };
+    foreach (var n in nums) Console.WriteLine(n);
+    Console.WriteLine(&quot;ok&quot;);
+  }
+}
+</code></pre>
+<h2>php-rich</h2>
+<pre data-pre-highlight="hl-15"><code class="language-php">&lt;?php
+class User {
+  public function __construct(private string $name) {}
+  public function hello(string $to): string {
+    return $this-&gt;name . ':' . $to;
+  }
+}
+$u = new User('cat');
+echo $u-&gt;hello('you');
+</code></pre>
+<h2>cpp-rich</h2>
+<pre data-pre-highlight="hl-16"><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;vector&gt;
+int add(int a, int b) { return a + b; }
+int main() {
+  std::vector&lt;int&gt; nums = {1, 2, 3};
+  for (int n : nums) std::cout &lt;&lt; n &lt;&lt; &quot;\n&quot;;
+  if (add(1, 2) &gt; 2) std::cout &lt;&lt; &quot;ok\n&quot;;
+  return 0;
+}
+</code></pre>
+<h2>c-rich</h2>
+<pre data-pre-highlight="hl-17"><code class="language-c">#include &lt;stdio.h&gt;
+static int add(int a, int b) { return a + b; }
+int main(void) {
+  int nums[3] = {1, 2, 3};
+  for (int i = 0; i &lt; 3; i++) printf(&quot;%d\n&quot;, nums[i]);
+  if (add(1, 2) &gt; 2) printf(&quot;ok\n&quot;);
+  return 0;
+}
+</code></pre>
+<h2>hcl-rich</h2>
+<pre data-pre-highlight="hl-18"><code class="language-hcl">terraform {
+  required_version = &quot;&gt;= 1.6.0&quot;
+}
+
+variable &quot;name&quot; {
+  type    = string
+  default = &quot;cat&quot;
+}
+
+resource &quot;null_resource&quot; &quot;demo&quot; {
+  count = 2
+}
+</code></pre>
+
+  <script type="application/json" id="pre-highlight-data">{"hl-1":{"v":1,"engine":"hljs","lang":"javascript","offsetEncoding":"utf16","newline":"lf","textLength":191,"scopes":["hl-hljs-comment","hl-hljs-keyword","hl-hljs-title-class","hl-hljs-title-function","hl-hljs-params","hl-hljs-variable-language","hl-hljs-property","hl-hljs-string","hl-hljs-subst","hl-hljs-literal","hl-hljs-number"],"ranges":[[0,0,10],[1,11,16],[2,17,24],[3,29,40],[4,41,45],[5,49,53],[6,54,58],[3,70,75],[4,76,80],[1,84,90],[7,91,92],[8,92,94],[5,94,98],[8,98,104],[7,104,105],[8,105,112],[7,112,113],[1,118,123],[1,128,131],[2,132,139],[7,140,145],[5,147,154],[3,155,158],[3,161,166],[7,167,172],[9,175,179],[9,181,185],[10,187,189]]},"hl-2":{"v":1,"engine":"hljs","lang":"typescript","offsetEncoding":"utf16","newline":"lf","textLength":138,"scopes":["hl-hljs-keyword","hl-hljs-title-class","hl-hljs-attr","hl-hljs-built_in","hl-hljs-title-function","hl-hljs-params","hl-hljs-property","hl-hljs-literal","hl-hljs-number","hl-hljs-string"],"ranges":[[0,0,4],[1,5,9],[2,14,16],[3,18,24],[2,26,30],[3,32,38],[0,41,49],[4,50,54],[2,55,56],[5,56,58],[1,58,62],[3,65,71],[0,74,80],[6,83,85],[0,88,93],[2,94,99],[1,101,105],[7,108,112],[2,117,119],[8,121,122],[2,124,128],[9,130,135]]},"hl-3":{"v":1,"engine":"hljs","lang":"python","offsetEncoding":"utf16","newline":"lf","textLength":91,"scopes":["hl-hljs-comment","hl-hljs-keyword","hl-hljs-title-function","hl-hljs-params","hl-hljs-number","hl-hljs-built_in","hl-hljs-string"],"ranges":[[0,0,9],[1,10,13],[2,14,17],[3,18,22],[1,29,35],[4,55,56],[4,58,59],[1,61,63],[4,72,73],[5,79,84],[6,85,89]]},"hl-4":{"v":1,"engine":"hljs","lang":"bash","offsetEncoding":"utf16","newline":"lf","textLength":78,"scopes":["hl-hljs-meta","hl-hljs-string","hl-hljs-keyword","hl-hljs-variable","hl-hljs-built_in"],"ranges":[[0,0,19],[1,25,32],[2,33,35],[1,41,42],[3,42,47],[1,47,48],[2,52,56],[4,59,63],[1,64,68],[3,68,73],[1,73,74],[2,75,77]]},"hl-5":{"v":1,"engine":"hljs","lang":"json","offsetEncoding":"utf16","newline":"lf","textLength":50,"scopes":["hl-hljs-punctuation","hl-hljs-attr","hl-hljs-string","hl-hljs-number","hl-hljs-keyword"],"ranges":[[0,0,1],[1,4,10],[0,10,11],[2,12,17],[0,17,18],[1,21,26],[0,26,27],[3,28,29],[0,29,30],[1,33,41],[0,41,42],[4,43,47],[0,48,49]]},"hl-6":{"v":1,"engine":"hljs","lang":"html","offsetEncoding":"utf16","newline":"lf","textLength":58,"scopes":["hl-hljs-tag","hl-hljs-name","hl-hljs-attr","hl-hljs-string"],"ranges":[[0,0,1],[1,1,4],[0,4,5],[2,5,10],[0,10,11],[3,11,16],[0,16,17],[2,17,24],[0,24,25],[3,25,28],[0,28,29],[0,32,33],[1,33,37],[0,37,38],[0,43,45],[1,45,49],[0,49,50],[0,51,53],[1,53,56],[0,56,57]]},"hl-7":{"v":1,"engine":"hljs","lang":"css","offsetEncoding":"utf16","newline":"lf","textLength":89,"scopes":["hl-hljs-selector-class","hl-hljs-attribute","hl-hljs-number","hl-hljs-keyword"],"ranges":[[0,0,4],[1,7,12],[2,14,18],[1,20,26],[2,28,31],[3,35,41],[1,43,52],[2,54,59],[0,63,67],[1,70,77]]},"hl-8":{"v":1,"engine":"hljs","lang":"yaml","offsetEncoding":"utf16","newline":"lf","textLength":40,"scopes":["hl-hljs-attr","hl-hljs-string","hl-hljs-literal","hl-hljs-bullet","hl-hljs-number"],"ranges":[[0,0,5],[1,6,9],[0,10,18],[2,19,23],[0,24,30],[3,33,34],[4,35,39]]},"hl-9":{"v":1,"engine":"hljs","lang":"sql","offsetEncoding":"utf16","newline":"lf","textLength":65,"scopes":["hl-hljs-keyword","hl-hljs-operator","hl-hljs-literal"],"ranges":[[0,0,6],[0,16,20],[0,27,32],[1,40,41],[2,42,46],[0,47,52],[0,53,55],[0,59,63]]},"hl-10":{"v":1,"engine":"hljs","lang":"go","offsetEncoding":"utf16","newline":"lf","textLength":108,"scopes":["hl-hljs-keyword","hl-hljs-string","hl-hljs-function","hl-hljs-title","hl-hljs-params","hl-hljs-type","hl-hljs-number"],"ranges":[[0,0,7],[0,13,19],[1,20,25],[0,26,30],[2,30,31],[3,31,34],[4,34,37],[5,37,40],[4,40,44],[5,44,47],[4,47,48],[5,49,52],[0,55,61],[0,70,74],[2,74,75],[3,75,79],[4,79,81],[6,100,101],[6,102,103]]},"hl-11":{"v":1,"engine":"hljs","lang":"rust","offsetEncoding":"utf16","newline":"lf","textLength":92,"scopes":["hl-hljs-keyword","hl-hljs-title-function","hl-hljs-type","hl-hljs-punctuation","hl-hljs-variable","hl-hljs-title-function-invoke","hl-hljs-number","hl-hljs-built_in","hl-hljs-string"],"ranges":[[0,0,2],[1,3,6],[2,10,13],[2,18,21],[3,23,25],[2,26,29],[0,40,42],[1,43,47],[0,52,55],[4,56,57],[5,60,63],[6,64,65],[6,67,68],[7,71,79],[8,80,84]]},"hl-12":{"v":1,"engine":"hljs","lang":"java","offsetEncoding":"utf16","newline":"lf","textLength":138,"scopes":["hl-hljs-keyword","hl-hljs-title-class","hl-hljs-type","hl-hljs-title-function","hl-hljs-params","hl-hljs-number"],"ranges":[[0,0,5],[1,6,9],[0,14,20],[2,21,24],[3,25,28],[4,28,29],[2,29,32],[4,32,36],[2,36,39],[4,39,42],[0,45,51],[0,63,69],[0,70,76],[0,77,81],[3,82,86],[4,86,101],[5,127,128],[5,129,130]]},"hl-13":{"v":1,"engine":"hljs","lang":"ruby","offsetEncoding":"utf16","newline":"lf","textLength":155,"scopes":["hl-hljs-keyword","hl-hljs-title-class","hl-hljs-title-function","hl-hljs-params","hl-hljs-variable","hl-hljs-string","hl-hljs-subst"],"ranges":[[0,0,5],[1,6,10],[0,13,16],[2,17,27],[3,28,32],[4,38,43],[0,53,56],[0,59,62],[2,63,68],[3,69,71],[5,82,83],[6,83,85],[4,85,90],[6,90,91],[5,91,92],[6,92,97],[5,97,98],[0,101,104],[0,105,108],[1,116,120],[5,125,130],[5,148,153]]},"hl-14":{"v":1,"engine":"hljs","lang":"csharp","offsetEncoding":"utf16","newline":"lf","textLength":242,"scopes":["hl-hljs-keyword","hl-hljs-title","hl-hljs-function","hl-hljs-built_in","hl-hljs-params","hl-hljs-number","hl-hljs-string"],"ranges":[[0,0,5],[0,14,20],[0,21,26],[1,27,30],[0,35,41],[2,41,42],[0,42,48],[2,48,49],[3,49,52],[2,52,53],[1,53,56],[2,56,57],[3,57,60],[4,60,64],[3,64,67],[4,67,69],[2,69,70],[0,73,79],[0,91,97],[2,97,98],[0,98,104],[2,104,105],[0,105,109],[2,109,110],[1,110,114],[2,114,116],[0,123,126],[0,134,137],[3,138,141],[5,146,147],[5,149,150],[5,152,153],[0,161,168],[0,170,173],[0,176,178],[6,229,233]]},"hl-15":{"v":1,"engine":"hljs","lang":"php","offsetEncoding":"utf16","newline":"lf","textLength":207,"scopes":["hl-hljs-meta","hl-hljs-keyword","hl-hljs-class","hl-hljs-title","hl-hljs-function","hl-hljs-params","hl-hljs-variable","hl-hljs-variable-language","hl-hljs-string","hl-hljs-title-class","hl-hljs-title-function-invoke"],"ranges":[[0,0,5],[1,6,11],[2,11,12],[3,12,16],[2,16,17],[1,21,27],[1,28,36],[4,36,37],[3,37,48],[4,48,49],[1,49,56],[5,56,57],[1,57,63],[5,63,64],[6,64,69],[4,69,71],[1,76,82],[1,83,91],[4,91,92],[3,92,97],[4,97,98],[1,98,104],[5,104,105],[6,105,108],[4,108,111],[3,111,117],[4,117,118],[1,124,130],[7,131,136],[8,145,148],[6,151,154],[6,162,164],[1,167,170],[9,171,175],[8,176,181],[1,184,188],[6,189,191],[10,193,198],[8,199,204]]},"hl-16":{"v":1,"engine":"hljs","lang":"cpp","offsetEncoding":"utf16","newline":"lf","textLength":229,"scopes":["hl-hljs-meta","hl-hljs-keyword","hl-hljs-string","hl-hljs-type","hl-hljs-function","hl-hljs-title","hl-hljs-params","hl-hljs-number","hl-hljs-built_in"],"ranges":[[0,0,1],[1,1,8],[0,8,9],[2,9,19],[0,20,21],[1,21,28],[0,28,29],[2,29,37],[3,38,41],[4,41,42],[5,42,45],[6,45,46],[3,46,49],[6,49,53],[3,53,56],[6,56,59],[4,59,60],[1,62,68],[3,78,81],[4,81,82],[5,82,86],[6,86,88],[4,88,89],[3,105,108],[7,118,119],[7,121,122],[7,124,125],[1,130,133],[3,135,138],[2,167,168],[2,168,170],[2,170,171],[1,175,177],[8,179,182],[7,183,184],[7,186,187],[7,191,192],[2,207,210],[2,210,212],[2,212,213],[1,217,223],[7,224,225]]},"hl-17":{"v":1,"engine":"hljs","lang":"c","offsetEncoding":"utf16","newline":"lf","textLength":216,"scopes":["hl-hljs-meta","hl-hljs-keyword","hl-hljs-string","hl-hljs-type","hl-hljs-title-function","hl-hljs-params","hl-hljs-number","hl-hljs-built_in"],"ranges":[[0,0,1],[1,1,8],[0,8,9],[2,9,18],[3,19,25],[3,26,29],[4,30,33],[5,33,34],[3,34,37],[5,37,41],[3,41,44],[5,44,47],[1,50,56],[3,66,69],[4,70,74],[5,74,75],[3,75,79],[5,79,80],[3,85,88],[6,94,95],[6,100,101],[6,103,104],[6,106,107],[1,112,115],[3,117,120],[6,125,126],[6,132,133],[7,140,146],[2,147,150],[2,150,152],[2,152,153],[1,167,169],[6,175,176],[6,178,179],[6,183,184],[7,186,192],[2,193,196],[2,196,198],[2,198,199],[1,204,210],[6,211,212]]},"hl-18":{"v":1,"engine":"hljs","lang":"hcl","offsetEncoding":"utf16","newline":"lf","textLength":153,"scopes":[],"ranges":[]}}</script>
+  <script src="./pre-highlight.js"></script>
+  <script>
+    window.applyPreHighlights({ useScopeStyles: false })
+  </script>
+</body>
+</html>

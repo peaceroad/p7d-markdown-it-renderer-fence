@@ -1,0 +1,31 @@
+{
+  "v": 1,
+  "engine": "custom",
+  
+  "lang": "js",
+  "offsetEncoding": "utf16",
+  "newline": "lf",
+  "textLength": 19,
+  "scopes": [
+    "hl-keyword-control-flow-js",
+    "hl-pre-lines-emphasis",
+    "hl-pre-comment-line"
+  ],
+  "ranges": [
+    [
+      0,
+      0,
+      5
+    ],
+    [
+      1,
+      12,
+      18
+    ],
+    [
+      2,
+      12,
+      18
+    ]
+  ]
+}

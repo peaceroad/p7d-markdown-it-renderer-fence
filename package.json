@@ -3,16 +3,39 @@
   "version": "0.4.1",
   "description": "In code blocks, the `<samp>` tag is used with the language keywords `samp`, `shell`, and `console`, and provides an option to display line numbers.",
   "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./custom-highlight": "./src/entry/custom-highlight.js",
+    "./markup-highlight": "./src/entry/markup-highlight.js"
+  },
   "files": [
     "index.js",
+    "src",
     "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
     "README.md"
   ],
   "type": "module",
+  "customHighlightPayload": {
+    "schemaVersion": 1,
+    "supportedVersions": [
+      1
+    ]
+  },
   "scripts": {
-    "test": "node test/test.js",
+    "test": "node test/test.js && node test/custom-highlight/provider-contract.test.js && node test/custom-highlight/provider-keyword-coverage.test.js && node test/custom-highlight/provider-keyword-holdout-parity.test.js",
+    "test:provider:contract": "node test/custom-highlight/provider-contract.test.js",
+    "test:provider:keyword": "node test/custom-highlight/provider-keyword-coverage.test.js",
+    "test:provider:keyword:holdout": "node test/custom-highlight/provider-keyword-holdout-parity.test.js",
+    "test:provider:keyword:mismatch": "node test/custom-highlight/provider-keyword-mismatch-report.js",
+    "test:provider:matrix": "node test/custom-highlight/provider-matrix-audit.js",
+    "build:demo:provider:keyword": "node test/custom-highlight/build-provider-keyword-demos.js",
+    "build:example:custom-highlight": "node example/build-custom-highlight-compare.js",
     "test:performance": "node test/performance/benchmark.js",
-    "test:performance:highlighter": "node test/performance/highlighter-benchmark.js"
+    "test:performance:highlighter": "node test/performance/highlighter-benchmark.js",
+    "test:performance:provider-modes": "node test/performance/provider-mode-benchmark.js",
+    "test:performance:runtime": "node test/performance/runtime-apply-benchmark.js",
+    "test:performance:keyword": "node test/performance/provider-mode-benchmark.js"
   },
   "author": "peaceroad <peaceroad@gmail.com>",
   "repository": "https://github.com/peaceroad/p7d-markdown-it-renderer-fence",
