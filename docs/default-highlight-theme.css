@@ -1,0 +1,112 @@
+/*
+  Baseline theme preset for both API mode and markup mode.
+
+  IMPORTANT:
+  - This file is an optional preset reference under docs/.
+  - The plugin does NOT auto-load this CSS.
+  - Consumers must include/import this file explicitly.
+
+  Source and provenance:
+  - Light palette is primarily aligned with highlight.js "GitHub" theme token colors.
+  - Dark palette is aligned with GitHub dark syntax palette used by highlight.js "GitHub Dark" theme family.
+  - Mappings are normalized for this plugin's API scopes and markup classes.
+
+  Upstream theme/license references:
+  - highlight.js styles are distributed under BSD-3-Clause.
+  - See: node_modules/highlight.js/styles/github.css
+  - See: node_modules/highlight.js/styles/github-dark.css
+  - See: node_modules/highlight.js/LICENSE
+
+  - API mode:
+    - Shiki keyword buckets: ::highlight(hl-shiki-*)
+    - highlight.js provider: ::highlight(hl-hljs-*)
+  - Markup mode:
+    - highlight.js classes: .hljs-*
+*/
+
+:root {
+  --hl-text: #24292e;
+  --hl-bg: #f6f8fa;
+  --hl-keyword: #d73a49;
+  --hl-string: #032f62;
+  --hl-number: #005cc5;
+  --hl-comment: #6a737d;
+  --hl-type: #005cc5;
+  --hl-title: #6f42c1;
+  --hl-variable: #24292e;
+  --hl-literal: #005cc5;
+  --hl-tag: #22863a;
+  --hl-attr: #6f42c1;
+  --hl-punctuation: #24292e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --hl-text: #e6edf3;
+    --hl-bg: #161b22;
+    --hl-keyword: #ff7b72;
+    --hl-string: #a5d6ff;
+    --hl-number: #79c0ff;
+    --hl-comment: #8b949e;
+    --hl-type: #79c0ff;
+    --hl-title: #d2a8ff;
+    --hl-variable: #e6edf3;
+    --hl-literal: #79c0ff;
+    --hl-tag: #7ee787;
+    --hl-attr: #d2a8ff;
+    --hl-punctuation: #e6edf3;
+  }
+}
+
+pre {
+  color: var(--hl-text);
+  background: var(--hl-bg);
+}
+
+/* API mode: Shiki keyword buckets */
+::highlight(hl-shiki-keyword) { color: var(--hl-keyword); }
+::highlight(hl-shiki-string) { color: var(--hl-string); }
+::highlight(hl-shiki-number) { color: var(--hl-number); }
+::highlight(hl-shiki-comment) { color: var(--hl-comment); }
+::highlight(hl-shiki-type) { color: var(--hl-type); }
+::highlight(hl-shiki-title-function) { color: var(--hl-title); }
+::highlight(hl-shiki-title-class) { color: var(--hl-title); }
+::highlight(hl-shiki-variable) { color: var(--hl-variable); }
+::highlight(hl-shiki-variable-plain) { color: var(--hl-variable); }
+::highlight(hl-shiki-variable-parameter) { color: var(--hl-variable); }
+::highlight(hl-shiki-variable-member) { color: var(--hl-variable); }
+::highlight(hl-shiki-literal) { color: var(--hl-literal); }
+::highlight(hl-shiki-tag) { color: var(--hl-tag); }
+::highlight(hl-shiki-attribute) { color: var(--hl-attr); }
+::highlight(hl-shiki-punctuation) { color: var(--hl-punctuation); }
+
+/* API mode: highlight.js provider scopes */
+::highlight(hl-hljs-keyword) { color: var(--hl-keyword); }
+::highlight(hl-hljs-string) { color: var(--hl-string); }
+::highlight(hl-hljs-number) { color: var(--hl-number); }
+::highlight(hl-hljs-comment) { color: var(--hl-comment); }
+::highlight(hl-hljs-type) { color: var(--hl-type); }
+::highlight(hl-hljs-title-function) { color: var(--hl-title); }
+::highlight(hl-hljs-title-class) { color: var(--hl-title); }
+::highlight(hl-hljs-variable) { color: var(--hl-variable); }
+::highlight(hl-hljs-literal) { color: var(--hl-literal); }
+::highlight(hl-hljs-tag) { color: var(--hl-tag); }
+::highlight(hl-hljs-attr) { color: var(--hl-attr); }
+::highlight(hl-hljs-attribute) { color: var(--hl-attr); }
+::highlight(hl-hljs-punctuation) { color: var(--hl-punctuation); }
+
+/* Markup mode: highlight.js classes */
+.hljs-keyword { color: var(--hl-keyword); }
+.hljs-string { color: var(--hl-string); }
+.hljs-number { color: var(--hl-number); }
+.hljs-comment { color: var(--hl-comment); }
+.hljs-type { color: var(--hl-type); }
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.function_ { color: var(--hl-title); }
+.hljs-variable,
+.hljs-params { color: var(--hl-variable); }
+.hljs-literal { color: var(--hl-literal); }
+.hljs-tag { color: var(--hl-tag); }
+.hljs-attr,
+.hljs-attribute { color: var(--hl-attr); }
