@@ -2,7 +2,7 @@
 
 A `markdown-it` plugin for code block rendering and enhancements.
 
-Default is `markup` mode. `api` mode is available as an advanced/experimental path for Custom Highlight API workflows.
+Default is `markup` mode. Custom Highlight API mode is available as an advanced/experimental path.
 
 ## Install
 
@@ -20,6 +20,8 @@ If you use syntax highlighting, install a highlighter too (for example `highligh
   Markup-focused entry.
 - `@peaceroad/markdown-it-renderer-fence/custom-highlight`  
   API-mode entry + runtime/payload helpers.
+- `@peaceroad/markdown-it-renderer-fence/custom-highlight-runtime`  
+  Runtime-only entry (`applyCustomHighlights` / `observeCustomHighlights` / `clearCustomHighlights`).
 
 ## Markup Mode (Default)
 
@@ -228,9 +230,15 @@ echo 1
 - `onFenceDecision` (default: `null`): debug hook for per-fence branch decisions.
 - `onFenceDecisionTiming` (default: `false`): include timing fields in `onFenceDecision`.
 
-## API Mode (Experimental / Advanced)
+## Custom Highlight API Mode (Experimental / Advanced)
 
-API mode renders plain code text and emits range payloads for browser-side Custom Highlight API application.
+Custom Highlight API mode renders plain code text and emits range payloads for browser-side Custom Highlight API application.
+
+Important:
+
+- You must run runtime apply in the browser (`applyCustomHighlights` or `observeCustomHighlights`).
+- Without runtime apply, payload exists but browser highlights are not activated.
+- `test/custom-highlight/pre-highlight.js` is a demo helper, not the package runtime API contract.
 
 Use API mode only if you need runtime range highlighting and can manage runtime/CSS integration in your app.
 
@@ -273,6 +281,15 @@ Browser-side apply:
 
 ```js
 applyCustomHighlights(document)
+```
+
+When using `colorScheme: 'auto'`, scheme resolution happens at apply time.
+If OS/browser theme changes after first apply, re-run apply (or use observer watch mode below).
+
+If you only need runtime apply on the browser, import runtime-only entry:
+
+```js
+import { observeCustomHighlights } from '@peaceroad/markdown-it-renderer-fence/custom-highlight-runtime'
 ```
 
 `langs` note:
@@ -334,16 +351,93 @@ customHighlight: {
 }
 ```
 
+### API Multi-Theme (Shiki, `v:1` additive payload)
+
+When you need runtime light/dark switching with Shiki color styles, pass object form theme:
+
+```js
+customHighlight: {
+  provider: 'shiki',
+  highlighter,
+  shikiScopeMode: 'color',
+  includeScopeStyles: true,
+  theme: {
+    light: 'github-light',
+    dark: 'github-dark',
+    default: 'light',
+  },
+}
+```
+
+Runtime apply can choose variant:
+
+```js
+applyCustomHighlights(document, { colorScheme: 'auto' }) // 'auto' | 'light' | 'dark'
+```
+
+Auto re-apply on color-scheme change:
+
+```js
+observeCustomHighlights(document, {
+  applyOptions: { colorScheme: 'auto', incremental: true },
+  watchColorScheme: true,
+})
+```
+
+### CMS / Copy-Paste Operation
+
+If you copy rendered HTML+payload JSON into another CMS/page:
+
+- API mode works only when runtime JS is also available on that page.
+- payload JSON alone is not enough.
+- if the target CMS cannot run custom JS, use `markup` mode instead.
+- this plugin does not auto-generate/write runtime JS files during markdown render.
+
+Practical patterns:
+
+1. Site/app with bundler  
+   Bundle `@peaceroad/markdown-it-renderer-fence/custom-highlight-runtime` and run `observeCustomHighlights(...)`.
+2. Static page with module scripts  
+   Load runtime entry via your ESM delivery path and call `applyCustomHighlights(...)`.
+3. HTML-only CMS (no JS injection)  
+   Use `markup` mode (API mode is not suitable).
+
+### CLI Build Artifact Contract
+
+For CLI/static generation, treat API mode output as two artifacts:
+
+1. HTML artifact  
+   Includes `<pre data-pre-highlight="...">...</pre>` and payload JSON (`env` script or inline-script transport).
+2. Runtime artifact  
+   Browser JS that imports `@peaceroad/markdown-it-renderer-fence/custom-highlight-runtime` and runs `applyCustomHighlights(...)` or `observeCustomHighlights(...)`.
+
+Typical runtime bridge file:
+
+```js
+import { observeCustomHighlights } from '@peaceroad/markdown-it-renderer-fence/custom-highlight-runtime'
+
+observeCustomHighlights(document, {
+  applyOptions: { colorScheme: 'auto', incremental: true },
+  watchColorScheme: true,
+})
+```
+
+Then include that bridge in generated HTML:
+
+```html
+<script type="module" src="/assets/custom-highlight-runtime.js"></script>
+```
+
 ### API Options
 
-- `highlightRenderer` (`'markup' | 'api'`, default: `'markup'`): dispatcher mode selector (`/custom-highlight` entry does not need this).
+- `highlightRenderer` (`'markup' | 'api' | 'custom-highlight-api'`, default: `'markup'`): dispatcher mode selector (`/custom-highlight` entry does not need this).
 - `customHighlight.provider` (default: `'shiki'`): range source (`'shiki' | 'hljs' | 'custom'`).
 - `customHighlight.getRanges`: required when `provider: 'custom'`; must return synchronous ranges.
 - `customHighlight.highlighter`: Shiki highlighter object with synchronous `codeToTokens`.
 - `customHighlight.hljsHighlight`: highlight.js-style function used when `provider: 'hljs'`.
 - `customHighlight.highlight`: fallback highlight function for `hljs` provider.
 - `customHighlight.defaultLang`: default language when fence language is empty.
-- `customHighlight.theme`: Shiki theme forwarded to `codeToTokens`.
+- `customHighlight.theme`: Shiki theme name string, or object `{ light, dark, default? }` for dual-theme payload.
 - `customHighlight.shikiScopeMode` (default: `'auto'`): scope naming mode (`auto | color | semantic | keyword`).
 - `customHighlight.shikiKeywordClassifier`: custom classifier hook for keyword mode.
 - `customHighlight.shikiKeywordLangResolver`: custom language resolver hook for keyword mode.

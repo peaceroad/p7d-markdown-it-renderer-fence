@@ -11,8 +11,16 @@ import mditRendererFenceCustomHighlight, {
   shouldRuntimeFallback,
 } from './src/entry/custom-highlight.js'
 
+const normalizeHighlightRenderer = (value) => {
+  const key = String(value || '').trim().toLowerCase()
+  if (key === 'api' || key === 'custom-highlight-api') return 'api'
+  return 'markup'
+}
+
 const mditRendererFence = (md, option) => {
-  if (option && option.highlightRenderer === 'api') return mditRendererFenceCustomHighlight(md, option)
+  if (normalizeHighlightRenderer(option && option.highlightRenderer) === 'api') {
+    return mditRendererFenceCustomHighlight(md, option)
+  }
   return mditRendererFenceMarkup(md, option)
 }
 

@@ -14,6 +14,11 @@ import mditRendererFence, {
   renderCustomHighlightPayloadScript,
   renderCustomHighlightScopeStyleTag,
 } from '../index.js'
+import {
+  applyCustomHighlights as applyCustomHighlightsRuntimeOnly,
+  clearCustomHighlights as clearCustomHighlightsRuntimeOnly,
+  observeCustomHighlights as observeCustomHighlightsRuntimeOnly,
+} from '../src/entry/custom-highlight-runtime.js'
 import mditAttrs from 'markdown-it-attrs'
 import highlightjs from 'highlight.js'
 import { createHighlighter } from 'shiki'
@@ -56,7 +61,7 @@ const mdCommentLineMismatch = mdit({
   }
 }).use(mditRendererFence, opt).use(mditAttrs)
 const shikiHighlighter = await createHighlighter({
-  themes: ['github-light'],
+  themes: ['github-light', 'github-dark'],
   langs: ['javascript', 'typescript', 'python', 'shellscript', 'csharp', 'cpp', 'c', 'php', 'hcl'],
 })
 const mdShiki = mdit({
@@ -129,6 +134,17 @@ const mdApiCustom = mdit({ html: true, langPrefix: 'language-' }).use(mditRender
     }),
   },
 }).use(mditAttrs)
+const mdApiCustomAlias = mdit({ html: true, langPrefix: 'language-' }).use(mditRendererFence, {
+  highlightRenderer: 'custom-highlight-api',
+  customHighlight: {
+    provider: 'custom',
+    getRanges: (code) => ({
+      ranges: [
+        { scope: 'keyword.control.flow.js', start: 0, end: Math.min(5, code.length) },
+      ],
+    }),
+  },
+}).use(mditAttrs)
 const mdApiFallbackPlain = mdit({ html: true, langPrefix: 'language-' }).use(mditRendererFence, {
   highlightRenderer: 'api',
   customHighlight: {
@@ -178,6 +194,19 @@ const mdApiShikiProvider = mdit({ html: true, langPrefix: 'language-' }).use(mdi
     provider: 'shiki',
     highlighter: shikiHighlighter,
     theme: 'github-light',
+  },
+}).use(mditAttrs)
+const mdApiShikiProviderMultiTheme = mdit({ html: true, langPrefix: 'language-' }).use(mditRendererFence, {
+  highlightRenderer: 'api',
+  customHighlight: {
+    provider: 'shiki',
+    highlighter: shikiHighlighter,
+    theme: {
+      light: 'github-light',
+      dark: 'github-dark',
+      default: 'light',
+    },
+    shikiScopeMode: 'color',
   },
 }).use(mditAttrs)
 const mdApiShikiProviderMissingHighlighter = mdit({ html: true, langPrefix: 'language-' }).use(mditRendererFence, {
@@ -941,6 +970,115 @@ const runRuntimeIncrementalScopeDiffUpdateTest = () => {
   }
 }
 
+const runRuntimeStyleUpdateSameNameTest = () => {
+  console.log('===========================================================')
+  console.log('custom-highlight-runtime-style-update-same-name')
+  try {
+    withMockHighlightApi(() => {
+      const runtime = createMockRuntimeRoot()
+      runtime.setBlocks([{ id: 'hl-1', text: 'const value' }])
+      runtime.setPayloadMap({
+        'hl-1': {
+          v: 1,
+          engine: 'custom',
+          lang: 'js',
+          offsetEncoding: 'utf16',
+          newline: 'lf',
+          textLength: 11,
+          scopes: ['hl-keyword'],
+          ranges: [[0, 0, 5]],
+          scopeStyles: [{ color: '#111111' }],
+        },
+      })
+
+      const first = applyCustomHighlights(runtime.root, { incremental: true })
+      assert.deepStrictEqual(first, { appliedBlocks: 1, appliedRanges: 1 })
+      assert.ok(runtime.getStyleText().includes('#111111'))
+
+      runtime.setPayloadMap({
+        'hl-1': {
+          v: 1,
+          engine: 'custom',
+          lang: 'js',
+          offsetEncoding: 'utf16',
+          newline: 'lf',
+          textLength: 11,
+          scopes: ['hl-keyword'],
+          ranges: [[0, 0, 5]],
+          scopeStyles: [{ color: '#222222' }],
+        },
+      })
+      const second = applyCustomHighlights(runtime.root, { incremental: true })
+      assert.deepStrictEqual(second, { appliedBlocks: 1, appliedRanges: 1 })
+      assert.ok(runtime.getStyleText().includes('#222222'))
+    })
+    console.log('Test: custom-highlight-runtime-style-update-same-name >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
+const runRuntimeColorSchemeVariantTest = () => {
+  console.log('===========================================================')
+  console.log('custom-highlight-runtime-color-scheme-variant')
+  try {
+    withMockHighlightApi(({ store }) => {
+      const runtime = createMockRuntimeRoot()
+      runtime.setBlocks([{ id: 'hl-1', text: 'const value' }])
+      runtime.setPayloadMap({
+        'hl-1': {
+          v: 1,
+          engine: 'shiki',
+          lang: 'js',
+          offsetEncoding: 'utf16',
+          newline: 'lf',
+          textLength: 11,
+          scopes: ['hl-keyword'],
+          ranges: [[0, 0, 5]],
+          scopeStyles: [{ color: '#111111' }],
+          defaultVariant: 'light',
+          variants: {
+            light: {},
+            dark: {
+              scopeStyles: [{ color: '#eeeeee' }],
+            },
+          },
+        },
+      })
+
+      const first = applyCustomHighlights(runtime.root, { incremental: true, colorScheme: 'light' })
+      assert.deepStrictEqual(first, { appliedBlocks: 1, appliedRanges: 1 })
+      const lightApplied = runtime.blocks[0].getAttribute('data-pre-highlight-applied')
+      assert.ok(lightApplied)
+      assert.ok(lightApplied.includes('-v-light'))
+      assert.ok(runtime.getStyleText().includes('#111111'))
+      assert.ok(store.has(lightApplied))
+
+      const second = applyCustomHighlights(runtime.root, { incremental: true, colorScheme: 'dark' })
+      assert.deepStrictEqual(second, { appliedBlocks: 1, appliedRanges: 1 })
+      const darkApplied = runtime.blocks[0].getAttribute('data-pre-highlight-applied')
+      assert.ok(darkApplied)
+      assert.ok(darkApplied.includes('-v-dark'))
+      assert.notStrictEqual(darkApplied, lightApplied)
+      assert.ok(runtime.getStyleText().includes('#eeeeee'))
+      assert.ok(!store.has(lightApplied))
+      assert.ok(store.has(darkApplied))
+
+      const third = applyCustomHighlights(runtime.root, { incremental: true, colorScheme: 'dark' })
+      assert.deepStrictEqual(third, { appliedBlocks: 0, appliedRanges: 0, skipped: true, reason: 'unchanged' })
+    })
+    console.log('Test: custom-highlight-runtime-color-scheme-variant >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
 const runRuntimeVersionPolicyTest = () => {
   console.log('===========================================================')
   console.log('custom-highlight-runtime-version-policy')
@@ -969,6 +1107,22 @@ const runRuntimeVersionPolicyTest = () => {
       assert.deepStrictEqual(customAccepted, { appliedBlocks: 1, appliedRanges: 1 })
     })
     console.log('Test: custom-highlight-runtime-version-policy >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
+const runRuntimeOnlyEntryParityTest = () => {
+  console.log('===========================================================')
+  console.log('custom-highlight-runtime-only-entry')
+  try {
+    assert.strictEqual(applyCustomHighlightsRuntimeOnly, applyCustomHighlights)
+    assert.strictEqual(observeCustomHighlightsRuntimeOnly, observeCustomHighlights)
+    assert.strictEqual(clearCustomHighlightsRuntimeOnly, clearCustomHighlights)
+    console.log('Test: custom-highlight-runtime-only-entry >>>')
     return true
   } catch (e) {
     console.log('incorrect:')
@@ -1111,6 +1265,111 @@ const runRuntimeLazyObserverTest = () => {
   }
 }
 
+const runRuntimeLazyObserverColorSchemeWatchTest = () => {
+  console.log('===========================================================')
+  console.log('custom-highlight-runtime-lazy-observer-color-scheme-watch')
+  const prevObserver = globalThis.IntersectionObserver
+  let observerInstance = null
+  globalThis.IntersectionObserver = class MockIntersectionObserver {
+    constructor(callback, opt) {
+      this.callback = callback
+      this.options = opt
+      this.targets = []
+      this.disconnected = false
+      observerInstance = this
+    }
+    observe(target) {
+      this.targets.push(target)
+    }
+    disconnect() {
+      this.disconnected = true
+    }
+    trigger(entries) {
+      this.callback(entries)
+    }
+  }
+  try {
+    withMockHighlightApi(({ store }) => {
+      const runtime = createMockRuntimeRoot()
+      runtime.setBlocks([{ id: 'hl-1', text: 'const value' }])
+      runtime.setPayloadMap({
+        'hl-1': {
+          v: 1,
+          engine: 'shiki',
+          lang: 'js',
+          offsetEncoding: 'utf16',
+          newline: 'lf',
+          textLength: 11,
+          scopes: ['hl-keyword'],
+          ranges: [[0, 0, 5]],
+          scopeStyles: [{ color: '#111111' }],
+          defaultVariant: 'light',
+          variants: {
+            light: {},
+            dark: {
+              scopeStyles: [{ color: '#eeeeee' }],
+            },
+          },
+        },
+      })
+
+      const listeners = new Set()
+      const mql = {
+        matches: false,
+        addEventListener: (type, fn) => {
+          if (type === 'change') listeners.add(fn)
+        },
+        removeEventListener: (type, fn) => {
+          if (type === 'change') listeners.delete(fn)
+        },
+        trigger: () => {
+          for (const fn of listeners) fn({ matches: mql.matches })
+        },
+      }
+
+      const lazy = observeCustomHighlights(runtime.root, {
+        autoStart: true,
+        once: true,
+        watchColorScheme: true,
+        matchMedia: () => mql,
+        applyOptions: {
+          incremental: true,
+          colorScheme: 'auto',
+        },
+      })
+      assert.strictEqual(lazy.supported, true)
+      assert.ok(observerInstance)
+      observerInstance.trigger([{ target: runtime.blocks[0], isIntersecting: true, intersectionRatio: 1 }])
+
+      const lightApplied = runtime.blocks[0].getAttribute('data-pre-highlight-applied')
+      assert.ok(lightApplied)
+      assert.ok(lightApplied.includes('-v-light'))
+      assert.ok(store.has(lightApplied))
+
+      mql.matches = true
+      mql.trigger()
+      const darkApplied = runtime.blocks[0].getAttribute('data-pre-highlight-applied')
+      assert.ok(darkApplied)
+      assert.ok(darkApplied.includes('-v-dark'))
+      assert.notStrictEqual(darkApplied, lightApplied)
+      assert.ok(store.has(darkApplied))
+      assert.ok(!store.has(lightApplied))
+
+      lazy.disconnect()
+      assert.strictEqual(listeners.size, 0)
+    })
+    console.log('Test: custom-highlight-runtime-lazy-observer-color-scheme-watch >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  } finally {
+    if (prevObserver === undefined) delete globalThis.IntersectionObserver
+    else globalThis.IntersectionObserver = prevObserver
+  }
+}
+
 const runApiHljsProviderTest = () => {
   console.log('===========================================================')
   console.log('api-hljs-provider')
@@ -1135,6 +1394,25 @@ const runApiHljsProviderTest = () => {
   }
 }
 
+const runApiRendererAliasTest = () => {
+  console.log('===========================================================')
+  console.log('api-renderer-alias')
+  try {
+    const env = {}
+    const markdown = '```javascript\nconst x = 1\n```\n'
+    const html = mdApiCustomAlias.render(markdown, env)
+    assert.ok(html.includes('data-pre-highlight="hl-1"'))
+    assert.ok(env.rendererFenceCustomHighlights)
+    assert.ok(env.rendererFenceCustomHighlights['hl-1'])
+    console.log('Test: api-renderer-alias >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
 const runApiShikiProviderNoStylesTest = () => {
   console.log('===========================================================')
   console.log('api-shiki-provider-no-scope-styles')
@@ -1150,6 +1428,40 @@ const runApiShikiProviderNoStylesTest = () => {
     assert.ok(Array.isArray(payload.ranges) && payload.ranges.length > 0)
     assert.ok(!Object.prototype.hasOwnProperty.call(payload, 'scopeStyles'))
     console.log('Test: api-shiki-provider-no-scope-styles >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
+const runApiShikiProviderMultiThemeTest = () => {
+  console.log('===========================================================')
+  console.log('api-shiki-provider-multi-theme')
+  try {
+    const env = {}
+    const markdown = '```javascript\nconst x = 1\n```\n'
+    mdApiShikiProviderMultiTheme.render(markdown, env)
+    assert.ok(env.rendererFenceCustomHighlights)
+    const payload = env.rendererFenceCustomHighlights['hl-1']
+    assert.ok(payload)
+    assert.strictEqual(payload.engine, 'shiki')
+    assert.strictEqual(payload.defaultVariant, 'light')
+    assert.ok(Array.isArray(payload.scopes) && payload.scopes.length > 0)
+    assert.ok(Array.isArray(payload.ranges) && payload.ranges.length > 0)
+    assert.ok(Array.isArray(payload.scopeStyles))
+    assert.ok(payload.variants && typeof payload.variants === 'object')
+    assert.ok(Object.prototype.hasOwnProperty.call(payload.variants, 'light'))
+    assert.ok(Object.prototype.hasOwnProperty.call(payload.variants, 'dark'))
+    const darkVariant = payload.variants.dark
+    assert.ok(darkVariant && typeof darkVariant === 'object')
+    assert.ok(
+      Array.isArray(darkVariant.scopeStyles) ||
+      Array.isArray(darkVariant.scopes) ||
+      Array.isArray(darkVariant.ranges),
+    )
+    console.log('Test: api-shiki-provider-multi-theme >>>')
     return true
   } catch (e) {
     console.log('incorrect:')
@@ -1487,6 +1799,7 @@ const runCustomHighlightOptionValidationWarnOnceTest = () => {
             provider: 'custom',
             getRanges: () => ({ ranges: [[0, 0, 1]], scopes: ['x'] }),
             unknownFlagForWarnOnce: true,
+            theme: { light: 123, default: 'invalid' },
           },
         })
     }
@@ -1496,6 +1809,8 @@ const runCustomHighlightOptionValidationWarnOnceTest = () => {
     md2.render('```txt\na\n```\n')
     const hits = warns.filter((msg) => msg.includes('unknownFlagForWarnOnce'))
     assert.strictEqual(hits.length, 1)
+    const themeHits = warns.filter((msg) => msg.includes('customHighlight.theme.light should'))
+    assert.strictEqual(themeHits.length, 1)
     console.log('Test: custom-highlight-option-validation-warn-once >>>')
     return true
   } catch (e) {
@@ -1674,7 +1989,9 @@ pass = runApiFixture({
   },
 }) && pass
 pass = runApiHljsProviderTest() && pass
+pass = runApiRendererAliasTest() && pass
 pass = runApiShikiProviderNoStylesTest() && pass
+pass = runApiShikiProviderMultiThemeTest() && pass
 pass = runApiShikiProviderMissingHighlighterTest() && pass
 pass = runApiShikiProviderExplanationTest() && pass
 pass = runApiShikiProviderHighlighterExplanationTest() && pass
@@ -1697,8 +2014,15 @@ pass = runRuntimeInlineScriptTest() && pass
 pass = runRuntimeIncrementalSkipTest() && pass
 pass = runRuntimeIncrementalPartialReuseTest() && pass
 pass = runRuntimeIncrementalScopeDiffUpdateTest() && pass
+pass = runRuntimeStyleUpdateSameNameTest() && pass
+pass = runRuntimeColorSchemeVariantTest() && pass
+pass = runRuntimeOnlyEntryParityTest() && pass
 pass = runRuntimeVersionPolicyTest() && pass
 pass = runRuntimeDiagnosticsHookTest() && pass
 pass = runRuntimeLazyObserverTest() && pass
+pass = runRuntimeLazyObserverColorSchemeWatchTest() && pass
 
-if (pass) console.log('Passed all test.')
+if (!pass) {
+  console.log('Failed test(s).')
+  process.exitCode = 1
+}

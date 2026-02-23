@@ -6,6 +6,7 @@
   "exports": {
     ".": "./index.js",
     "./custom-highlight": "./src/entry/custom-highlight.js",
+    "./custom-highlight-runtime": "./src/entry/custom-highlight-runtime.js",
     "./markup-highlight": "./src/entry/markup-highlight.js"
   },
   "files": [
@@ -23,7 +24,7 @@
     ]
   },
   "scripts": {
-    "test": "node test/test.js && node test/custom-highlight/provider-contract.test.js && node test/custom-highlight/provider-keyword-coverage.test.js && node test/custom-highlight/provider-keyword-holdout-parity.test.js",
+    "test": "node test/test.js && node test/custom-highlight/provider-contract.test.js && node test/custom-highlight/provider-keyword-coverage.test.js && node test/custom-highlight/provider-keyword-holdout-parity.test.js && node -e \"console.log('Passed all test.')\"",
     "test:provider:contract": "node test/custom-highlight/provider-contract.test.js",
     "test:provider:keyword": "node test/custom-highlight/provider-keyword-coverage.test.js",
     "test:provider:keyword:holdout": "node test/custom-highlight/provider-keyword-holdout-parity.test.js",

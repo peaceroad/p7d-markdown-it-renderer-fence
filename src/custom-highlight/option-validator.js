@@ -91,6 +91,45 @@ const validateCustomHighlightOptions = (rawOpt, normalizedOpt) => {
     )
   }
 
+  if (rawOpt.theme != null) {
+    if (typeof rawOpt.theme !== 'string' && (typeof rawOpt.theme !== 'object' || Array.isArray(rawOpt.theme))) {
+      warnOptionIssueOnce(
+        'theme-type',
+        'customHighlight.theme should be a string or an object { light, dark, default? }.',
+      )
+    } else if (rawOpt.theme && typeof rawOpt.theme === 'object' && !Array.isArray(rawOpt.theme)) {
+      const hasLight = (typeof rawOpt.theme.light === 'string' && rawOpt.theme.light.trim().length > 0)
+      const hasDark = (typeof rawOpt.theme.dark === 'string' && rawOpt.theme.dark.trim().length > 0)
+      if (rawOpt.theme.light != null && typeof rawOpt.theme.light !== 'string') {
+        warnOptionIssueOnce(
+          'theme-light-type',
+          'customHighlight.theme.light should be a non-empty string when provided.',
+        )
+      }
+      if (rawOpt.theme.dark != null && typeof rawOpt.theme.dark !== 'string') {
+        warnOptionIssueOnce(
+          'theme-dark-type',
+          'customHighlight.theme.dark should be a non-empty string when provided.',
+        )
+      }
+      if (!hasLight && !hasDark) {
+        warnOptionIssueOnce(
+          'theme-missing-variants',
+          'customHighlight.theme object should include at least one of { light, dark }.',
+        )
+      }
+      if (rawOpt.theme.default != null) {
+        const key = String(rawOpt.theme.default).trim().toLowerCase()
+        if (key !== 'light' && key !== 'dark') {
+          warnOptionIssueOnce(
+            'theme-default',
+            'customHighlight.theme.default should be "light" or "dark".',
+          )
+        }
+      }
+    }
+  }
+
   if (normalizedOpt.provider === 'custom' && typeof normalizedOpt.getRanges !== 'function') {
     warnOptionIssueOnce(
       'custom-provider-ranges',

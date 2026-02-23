@@ -118,10 +118,12 @@ const getEmphasizeLines = (attrVal) => {
     }
     const start = part.slice(0, hyphen).trim()
     const end = part.slice(hyphen + 1).trim()
-    const s = Number(start)
-    const e = Number(end)
-    if (!Number.isFinite(s) || !Number.isFinite(e)) continue
-    if (s > 0 && e > 0) result.push([s, e])
+    const s = start ? Number(start) : null
+    const e = end ? Number(end) : null
+    if (s == null && e == null) continue
+    if (s != null && (!Number.isFinite(s) || s <= 0)) continue
+    if (e != null && (!Number.isFinite(e) || e <= 0)) continue
+    result.push([s, e])
   }
   return result
 }
@@ -165,11 +167,15 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
   for (let n = 0; n < max; n++) {
     let line = lines[n]
     const notLastLine = n < max - 1
-    const doEmphasis = needEmphasis && emIdx < emphasizeLines.length && n + 1 >= emStart && n + 1 <= emEnd
     const doComment = commentLines && commentLines[n]
-    const hasLt = line.indexOf('<') !== -1
+    let hasLt = false
+    let hasLtChecked = false
 
     if (needEndSpan && threshold > 0) {
+      if (!hasLtChecked) {
+        hasLt = line.indexOf('<') !== -1
+        hasLtChecked = true
+      }
       let lineLen = 0
       if (!hasLt) {
         lineLen = line.length
@@ -186,6 +192,10 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
     }
 
     if (needLineNumber && notLastLine) {
+      if (!hasLtChecked) {
+        hasLt = line.indexOf('<') !== -1
+        hasLtChecked = true
+      }
       if (hasLt && line.indexOf('>') !== -1) {
         const tagStack = []
         tagReg.lastIndex = 0
@@ -215,15 +225,15 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
       line = preLineTag + line + closeTag
     }
 
-    if (doEmphasis) {
-      if (emStart === n + 1) line = emphOpenTag + line
-      if (emEnd === n) {
-        line = closeTag + line
-        emIdx++
-        const nextEmphasis = emphasizeLines[emIdx] || []
-        emStart = nextEmphasis[0]
-        emEnd = nextEmphasis[1]
-      }
+    if (needEmphasis && emIdx < emphasizeLines.length && emStart === n + 1) {
+      line = emphOpenTag + line
+    }
+    if (needEmphasis && emIdx < emphasizeLines.length && emEnd === n) {
+      line = closeTag + line
+      emIdx++
+      const nextEmphasis = emphasizeLines[emIdx] || []
+      emStart = nextEmphasis[0]
+      emEnd = nextEmphasis[1]
     }
 
     lines[n] = line

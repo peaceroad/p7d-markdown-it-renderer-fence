@@ -5,26 +5,31 @@ import {
   styleToHighlightCss,
 } from '../custom-highlight/runtime-utils.js'
 import {
-  customHighlightPayloadSupportedVersions,
-  isNormalizedCustomHighlightOpt,
-  normalizeCustomHighlightOpt,
-  sanitizeHighlightName,
-  shouldApplyApiFallbackForReason,
-} from './render-api-provider.js'
-import {
   customHighlightAppliedAttr,
   customHighlightAppliedSelector,
   customHighlightCodeSelector,
   customHighlightDataScriptId,
+  customHighlightPayloadSupportedVersions,
   customHighlightPreAttr,
   customHighlightPreSelector,
   customHighlightStyleTagId,
-  runtimeFallbackReasonSet,
 } from './render-api-constants.js'
 
-const globalRuntimeInsertedScopeStyles = new Set()
+const globalRuntimeInsertedScopeStyles = new Map()
 const runtimeInsertedScopeStylesByDoc = new WeakMap()
 const runtimeApplyStateByRoot = new WeakMap()
+const validColorSchemeSet = new Set(['light', 'dark', 'auto'])
+const highlightNameUnsafeReg = /[^A-Za-z0-9_-]+/g
+const hyphenMultiReg = /-+/g
+
+const sanitizeHighlightName = (name) => {
+  const raw = String(name || '')
+  let safe = raw.replace(highlightNameUnsafeReg, '-').replace(hyphenMultiReg, '-').replace(/^-+|-+$/g, '')
+  if (!safe) safe = 'scope'
+  if (/^[0-9]/.test(safe)) safe = 'x-' + safe
+  if (safe.startsWith('--')) safe = safe.slice(2) || 'scope'
+  return safe
+}
 
 const getCustomHighlightBlockId = (node) => {
   if (!node || typeof node.getAttribute !== 'function') return null
@@ -33,12 +38,12 @@ const getCustomHighlightBlockId = (node) => {
 
 const getRuntimeInsertedScopeStyles = (doc) => {
   if (!doc || typeof doc !== 'object') return globalRuntimeInsertedScopeStyles
-  let set = runtimeInsertedScopeStylesByDoc.get(doc)
-  if (!set) {
-    set = new Set()
-    runtimeInsertedScopeStylesByDoc.set(doc, set)
+  let map = runtimeInsertedScopeStylesByDoc.get(doc)
+  if (!map) {
+    map = new Map()
+    runtimeInsertedScopeStylesByDoc.set(doc, map)
   }
-  return set
+  return map
 }
 
 const ensureHighlightStyleTag = (doc) => {
@@ -70,13 +75,23 @@ const clearAppliedHighlightNames = (queryRoot) => {
   return removed.size
 }
 
-const createPayloadDigest = (payloadMap) => {
+const getCachedPayloadString = (payload, cache) => {
+  if (!cache || payload == null || (typeof payload !== 'object' && typeof payload !== 'function')) {
+    return JSON.stringify(payload)
+  }
+  if (cache.has(payload)) return cache.get(payload)
+  const text = JSON.stringify(payload)
+  cache.set(payload, text)
+  return text
+}
+
+const createPayloadDigest = (payloadMap, cache) => {
   const keys = Object.keys(payloadMap || {}).sort()
   const parts = new Array(keys.length)
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i]
     const payload = payloadMap[key]
-    parts[i] = key + '=' + JSON.stringify(payload) + ';'
+    parts[i] = key + '=' + getCachedPayloadString(payload, cache) + ';'
   }
   return parts.join('')
 }
@@ -96,6 +111,27 @@ const clearRuntimeApplyState = (queryRoot) => {
   runtimeApplyStateByRoot.delete(queryRoot)
 }
 
+const addMediaQueryChangeListener = (queryList, listener) => {
+  if (!queryList || typeof listener !== 'function') return null
+  if (typeof queryList.addEventListener === 'function' && typeof queryList.removeEventListener === 'function') {
+    queryList.addEventListener('change', listener)
+    return () => {
+      try {
+        queryList.removeEventListener('change', listener)
+      } catch (e) {}
+    }
+  }
+  if (typeof queryList.addListener === 'function' && typeof queryList.removeListener === 'function') {
+    queryList.addListener(listener)
+    return () => {
+      try {
+        queryList.removeListener(listener)
+      } catch (e) {}
+    }
+  }
+  return null
+}
+
 const getRuntimeSupportedPayloadVersions = (options = {}) => {
   const set = new Set()
   if (options.strictVersion === true) {
@@ -109,6 +145,67 @@ const getRuntimeSupportedPayloadVersions = (options = {}) => {
   }
   if (set.size === 0) return null
   return set
+}
+
+const resolveRuntimeColorScheme = (options = {}, doc) => {
+  const raw = String(options.colorScheme || 'auto').trim().toLowerCase()
+  const mode = validColorSchemeSet.has(raw) ? raw : 'auto'
+  if (mode === 'light' || mode === 'dark') return mode
+  const view = doc && doc.defaultView
+  const matchMediaFn = (options.matchMedia && typeof options.matchMedia === 'function')
+    ? options.matchMedia
+    : (view && typeof view.matchMedia === 'function' ? view.matchMedia.bind(view) : null)
+  if (!matchMediaFn) return 'light'
+  try {
+    return matchMediaFn('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  } catch (e) {
+    return 'light'
+  }
+}
+
+const resolvePayloadVariantView = (payload, colorScheme) => {
+  const baseScopes = Array.isArray(payload && payload.scopes) ? payload.scopes : []
+  const baseRanges = Array.isArray(payload && payload.ranges) ? payload.ranges : []
+  const baseScopeStyles = Array.isArray(payload && payload.scopeStyles) ? payload.scopeStyles : null
+  const variants = payload && payload.variants && typeof payload.variants === 'object' ? payload.variants : null
+  if (!variants) {
+    return {
+      scopes: baseScopes,
+      ranges: baseRanges,
+      scopeStyles: baseScopeStyles,
+      variantKey: '',
+    }
+  }
+  const availableKeys = Object.keys(variants)
+  if (!availableKeys.length) {
+    return {
+      scopes: baseScopes,
+      ranges: baseRanges,
+      scopeStyles: baseScopeStyles,
+      variantKey: '',
+    }
+  }
+  let key = ''
+  if (colorScheme && variants[colorScheme]) key = colorScheme
+  if (!key && typeof payload.defaultVariant === 'string' && variants[payload.defaultVariant]) key = payload.defaultVariant
+  if (!key) key = availableKeys[0]
+  const variant = variants[key] && typeof variants[key] === 'object' ? variants[key] : {}
+  const scopes = Array.isArray(variant.scopes) ? variant.scopes : baseScopes
+  const ranges = Array.isArray(variant.ranges) ? variant.ranges : baseRanges
+  const scopeStyles = Array.isArray(variant.scopeStyles) ? variant.scopeStyles : baseScopeStyles
+  return {
+    scopes,
+    ranges,
+    scopeStyles,
+    variantKey: key || '',
+  }
+}
+
+const getRuntimeScopeName = (scopeName, variantKey) => {
+  const base = sanitizeHighlightName(scopeName)
+  if (!variantKey) return base
+  const suffix = sanitizeHighlightName(variantKey)
+  return `${base}-v-${suffix}`
 }
 
 const getCodeBoundaryRefs = (codeEl) => {
@@ -172,9 +269,11 @@ const applyCustomHighlights = (root, options = {}) => {
   const payloadMap = options.payloadMap && typeof options.payloadMap === 'object'
     ? options.payloadMap
     : getPayloadMapFromScript(queryRoot, options.dataScriptId || customHighlightDataScriptId)
+  const resolvedColorScheme = resolveRuntimeColorScheme(options, doc)
   const supportedVersions = getRuntimeSupportedPayloadVersions(options)
   const incremental = options.incremental === true
   const payloadDigestByBlock = incremental ? new Map() : null
+  const payloadStringifyCache = incremental ? new Map() : null
   let blockRefs = null
   let digest = null
   let prevBlockCache = null
@@ -190,7 +289,7 @@ const applyCustomHighlights = (root, options = {}) => {
       if (!blockId) continue
       blockRefs.set(blockId, codeEl)
     }
-    digest = (options.payloadDigest || createPayloadDigest(payloadMap)) + '|ids=' + Array.from(blockRefs.keys()).sort().join(',')
+    digest = (options.payloadDigest || createPayloadDigest(payloadMap, payloadStringifyCache)) + '|ids=' + Array.from(blockRefs.keys()).sort().join(',') + `|scheme=${resolvedColorScheme}`
     const prevState = getRuntimeApplyState(queryRoot)
     if (prevState && prevState.blockCache instanceof Map) prevBlockCache = prevState.blockCache
     if (prevState && prevState.scopeMetaMap instanceof Map) prevScopeMetaMap = prevState.scopeMetaMap
@@ -214,7 +313,7 @@ const applyCustomHighlights = (root, options = {}) => {
     }
   }
   let styleTag = null
-  let insertedStyleNames = null
+  let insertedScopeStyleMap = null
   if (!incremental) clearAppliedHighlightNames(queryRoot)
   const allScopeRanges = new Map()
   let appliedBlocks = 0
@@ -240,7 +339,8 @@ const applyCustomHighlights = (root, options = {}) => {
       if (emitDiag) emitDiag({ type: 'block-skip', blockId, reason: 'unsupported-version', version: payload.v })
       continue
     }
-    if (payload.ranges.length === 0 || payload.scopes.length === 0) {
+    const activePayload = resolvePayloadVariantView(payload, resolvedColorScheme)
+    if (activePayload.ranges.length === 0 || activePayload.scopes.length === 0) {
       pre.removeAttribute(customHighlightAppliedAttr)
       if (emitDiag) emitDiag({ type: 'block-skip', blockId, reason: 'empty-payload' })
       continue
@@ -250,7 +350,12 @@ const applyCustomHighlights = (root, options = {}) => {
     if (payloadDigestByBlock) {
       blockPayloadDigest = payloadDigestByBlock.get(blockId)
       if (blockPayloadDigest === undefined) {
-        blockPayloadDigest = JSON.stringify(payload)
+        const prevCached = prevBlockCache ? prevBlockCache.get(blockId) : null
+        if (prevCached && prevCached.payloadRef === payload && prevCached.variantKey === activePayload.variantKey) {
+          blockPayloadDigest = prevCached.payloadDigest || ''
+        } else {
+          blockPayloadDigest = getCachedPayloadString(payload, payloadStringifyCache) + `|variant=${activePayload.variantKey || ''}`
+        }
         payloadDigestByBlock.set(blockId, blockPayloadDigest)
       }
     }
@@ -306,14 +411,14 @@ const applyCustomHighlights = (root, options = {}) => {
     }
     const appliedNames = new Set()
     const appliedNameList = []
-    const scopeRuntimeNames = new Array(payload.scopes.length)
-    const scopeStyles = Array.isArray(payload.scopeStyles) ? payload.scopeStyles : null
+    const scopeRuntimeNames = new Array(activePayload.scopes.length)
+    const scopeStyles = Array.isArray(activePayload.scopeStyles) ? activePayload.scopeStyles : null
     const blockScopeRanges = nextBlockCache ? new Map() : null
     const blockScopeMetaParts = nextBlockCache ? new Map() : null
     let blockAppliedRangeCount = 0
 
-    for (let tupleIdx = 0; tupleIdx < payload.ranges.length; tupleIdx++) {
-      const tuple = payload.ranges[tupleIdx]
+    for (let tupleIdx = 0; tupleIdx < activePayload.ranges.length; tupleIdx++) {
+      const tuple = activePayload.ranges[tupleIdx]
       if (!Array.isArray(tuple) || tuple.length < 3) {
         if (emitDiag) emitDiag({ type: 'range-skip', blockId, reason: 'invalid-tuple', tupleIndex: tupleIdx })
         continue
@@ -325,11 +430,11 @@ const applyCustomHighlights = (root, options = {}) => {
         if (emitDiag) emitDiag({ type: 'range-skip', blockId, reason: 'invalid-range', tupleIndex: tupleIdx })
         continue
       }
-      if (scopeIdx < 0 || scopeIdx >= payload.scopes.length) {
+      if (scopeIdx < 0 || scopeIdx >= activePayload.scopes.length) {
         if (emitDiag) emitDiag({ type: 'range-skip', blockId, reason: 'invalid-scope-index', tupleIndex: tupleIdx, scopeIdx })
         continue
       }
-      const scopeName = payload.scopes[scopeIdx]
+      const scopeName = activePayload.scopes[scopeIdx]
       if (!scopeName) {
         if (emitDiag) emitDiag({ type: 'range-skip', blockId, reason: 'missing-scope', tupleIndex: tupleIdx, scopeIdx })
         continue
@@ -351,17 +456,17 @@ const applyCustomHighlights = (root, options = {}) => {
       }
       let runtimeName = scopeRuntimeNames[scopeIdx]
       if (!runtimeName) {
-        runtimeName = sanitizeHighlightName(scopeName)
+        runtimeName = getRuntimeScopeName(scopeName, activePayload.variantKey)
         scopeRuntimeNames[scopeIdx] = runtimeName
         if (scopeStyles) {
           const css = styleToHighlightCss(scopeStyles[scopeIdx])
           if (css) {
-            if (!insertedStyleNames) insertedStyleNames = getRuntimeInsertedScopeStyles(doc)
-            if (!insertedStyleNames.has(runtimeName)) {
+            if (!insertedScopeStyleMap) insertedScopeStyleMap = getRuntimeInsertedScopeStyles(doc)
+            if (insertedScopeStyleMap.get(runtimeName) !== css) {
               if (!styleTag) styleTag = ensureHighlightStyleTag(doc)
               if (styleTag) {
                 pendingCss += `\n::highlight(${runtimeName}){${css};}`
-                insertedStyleNames.add(runtimeName)
+                insertedScopeStyleMap.set(runtimeName, css)
               }
             }
           }
@@ -417,6 +522,8 @@ const applyCustomHighlights = (root, options = {}) => {
     if (nextBlockCache) {
       nextBlockCache.set(blockId, {
         codeEl,
+        payloadRef: payload,
+        variantKey: activePayload.variantKey || '',
         payloadDigest: blockPayloadDigest,
         textSnapshot,
         firstRef: boundaryRefs.first,
@@ -502,12 +609,22 @@ const observeCustomHighlights = (root, options = {}) => {
 
   const selector = String(options.selector || customHighlightPreSelector)
   const applyOptions = options.applyOptions && typeof options.applyOptions === 'object' ? options.applyOptions : {}
+  const runtimeApplyOptions = (typeof options.matchMedia === 'function' && typeof applyOptions.matchMedia !== 'function')
+    ? Object.assign({}, applyOptions, { matchMedia: options.matchMedia })
+    : applyOptions
   const once = options.once !== false
-  let isDisconnected = false
-  const applyNow = () => applyCustomHighlights(queryRoot, applyOptions)
+  let isDisposed = false
+  let isObserverStopped = false
+  let hasApplied = false
+  let removeColorSchemeListener = null
+  const applyNow = () => {
+    const result = applyCustomHighlights(queryRoot, runtimeApplyOptions)
+    hasApplied = true
+    return result
+  }
 
   const observer = new ObserverCtor((entries) => {
-    if (isDisconnected || !Array.isArray(entries)) return
+    if (isDisposed || !Array.isArray(entries)) return
     let shouldApply = false
     for (let i = 0; i < entries.length; i++) {
       const entry = entries[i]
@@ -520,7 +637,7 @@ const observeCustomHighlights = (root, options = {}) => {
     applyNow()
     if (once) {
       observer.disconnect()
-      isDisconnected = true
+      isObserverStopped = true
     }
   }, {
     root: options.root || null,
@@ -529,15 +646,44 @@ const observeCustomHighlights = (root, options = {}) => {
   })
 
   const observe = () => {
-    if (isDisconnected) return 0
+    if (isDisposed || isObserverStopped) return 0
     const targets = queryRoot.querySelectorAll(selector)
     for (const target of targets) observer.observe(target)
     return targets.length
   }
   const disconnect = () => {
-    if (isDisconnected) return
+    if (isDisposed) return
+    if (removeColorSchemeListener) {
+      removeColorSchemeListener()
+      removeColorSchemeListener = null
+    }
     observer.disconnect()
-    isDisconnected = true
+    isObserverStopped = true
+    isDisposed = true
+  }
+
+  const watchColorScheme = options.watchColorScheme === true
+  const autoMode = String(applyOptions.colorScheme || 'auto').trim().toLowerCase() === 'auto'
+  if (watchColorScheme && autoMode) {
+    const doc = queryRoot.ownerDocument || (typeof queryRoot.createElement === 'function' ? queryRoot : null)
+    const view = doc && doc.defaultView
+    const matchMediaFn = (options.matchMedia && typeof options.matchMedia === 'function')
+      ? options.matchMedia
+      : (view && typeof view.matchMedia === 'function' ? view.matchMedia.bind(view) : null)
+    if (matchMediaFn) {
+      let queryList = null
+      try {
+        queryList = matchMediaFn('(prefers-color-scheme: dark)')
+      } catch (e) {
+        queryList = null
+      }
+      if (queryList) {
+        removeColorSchemeListener = addMediaQueryChangeListener(queryList, () => {
+          if (isDisposed || !hasApplied) return
+          applyNow()
+        })
+      }
+    }
   }
 
   if (options.autoStart !== false) observe()
@@ -559,15 +705,8 @@ const clearCustomHighlights = (root) => {
   return { cleared: clearAppliedHighlightNames(queryRoot) }
 }
 
-const shouldRuntimeFallback = (reason, opt = {}) => {
-  const chOpt = isNormalizedCustomHighlightOpt(opt) ? opt : normalizeCustomHighlightOpt(opt)
-  if (!runtimeFallbackReasonSet.has(reason)) return false
-  return shouldApplyApiFallbackForReason(chOpt, reason)
-}
-
 export {
   applyCustomHighlights,
   clearCustomHighlights,
   observeCustomHighlights,
-  shouldRuntimeFallback,
 }

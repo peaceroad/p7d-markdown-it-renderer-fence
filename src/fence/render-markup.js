@@ -10,6 +10,7 @@ import {
   finalizeFenceTimings,
   getLogicalLineCount,
   getNowMs,
+  normalizeEmphasisRanges,
   orderTokenAttrs,
   preWrapStyle,
   splitFenceBlockToLines,
@@ -102,7 +103,10 @@ const renderFenceMarkup = (context, md, opt, slf) => {
   const preAttrsText = preAttrs.length ? slf.renderAttrs({ attrs: preAttrs }) : ''
 
   const needLineNumber = opt.setLineNumber && startNumber >= 0
-  const needEmphasis = opt.setEmphasizeLines && emphasizeLines.length > 0
+  const normalizedEmphasis = (opt.setEmphasizeLines && emphasizeLines.length > 0)
+    ? normalizeEmphasisRanges(emphasizeLines, getLogicalLineCount(content))
+    : []
+  const needEmphasis = normalizedEmphasis.length > 0
   const needEndSpan = opt.lineEndSpanThreshold > 0
   const useHighlightPre = opt.useHighlightPre && hasHighlightPre
 
@@ -127,7 +131,7 @@ const renderFenceMarkup = (context, md, opt, slf) => {
     const br = nlIndex > 0 && content[nlIndex - 1] === '\r' ? '\r\n' : '\n'
     content = splitFenceBlockToLines(
       content,
-      emphasizeLines,
+      normalizedEmphasis,
       needLineNumber,
       needEmphasis,
       needEndSpan,

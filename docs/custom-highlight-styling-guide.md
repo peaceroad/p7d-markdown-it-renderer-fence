@@ -1,31 +1,31 @@
 # Custom Highlight Styling Guide
 
-This is a practical user guide for API mode styling.
+This guide explains practical styling choices for `highlightRenderer: 'api'`.
 
-## 1. First Decision
+## 1. Choose Your Mode First
 
-- Recommended default for most users: `markup` mode.
-- Use API mode only when you need browser-side Custom Highlight API ranges.
+- Most users should stay on `markup` mode.
+- Use API mode only when you need browser runtime ranges (`CSS.highlights`) and custom runtime control.
 
-Defaults:
+Runtime note:
 
-- renderer default: `highlightRenderer: 'markup'`
-- API provider default: `customHighlight.provider: 'shiki'`
-- Shiki scope mode default: `customHighlight.shikiScopeMode: 'auto'`
-- payload style default: `customHighlight.includeScopeStyles: true`
+- API mode requires browser-side apply (`applyCustomHighlights` or `observeCustomHighlights`).
+- `test/custom-highlight/pre-highlight.js` is a demo helper, not the package runtime API contract.
+- runtime-only import path is `@peaceroad/markdown-it-renderer-fence/custom-highlight-runtime`.
+- markdown-it render itself does not emit runtime JS files; CLI/static generators should output a small runtime bridge asset separately.
 
-## 2. Where API-Mode Color Comes From
+## 2. Where API-Mode Colors Come From
 
-The plugin does not auto-load any CSS file.
+In API mode, color comes from one of two sources:
 
-In API mode, color comes from one of these:
+1. payload `scopeStyles` (`customHighlight.includeScopeStyles: true`)
+2. external `::highlight(...)` CSS (`customHighlight.includeScopeStyles: false`)
 
-1. Embedded payload styles (`scopeStyles`) when `includeScopeStyles: true`
-2. Your external `::highlight(...)` CSS when `includeScopeStyles: false`
+The plugin does not auto-load theme CSS files.
 
-`docs/default-highlight-theme.css` is an optional preset sample only.
+## 3. Recommended Profiles
 
-## 3. Recommended Production Profile
+### Profile A (recommended for production)
 
 Use CSS-managed keyword buckets:
 
@@ -33,67 +33,93 @@ Use CSS-managed keyword buckets:
 customHighlight: {
   provider: 'shiki',
   shikiScopeMode: 'keyword',
-  includeScopeStyles: false
+  includeScopeStyles: false,
 }
 ```
 
-Why this is recommended:
+Why:
 
-- stable scope names across code blocks/languages
-- easier light/dark control with CSS variables
-- no large per-block style payloads
+- stable scope names (`hl-shiki-keyword`, `hl-shiki-string`, ...)
+- easiest light/dark control with CSS variables and media queries
+- smaller payloads
+
+### Profile B (theme-faithful embedded colors)
+
+Use Shiki color scopes with embedded styles:
+
+```js
+customHighlight: {
+  provider: 'shiki',
+  shikiScopeMode: 'color',
+  includeScopeStyles: true,
+  theme: {
+    light: 'github-light',
+    dark: 'github-dark',
+    default: 'light',
+  },
+}
+```
+
+Use this only when you need self-contained per-theme styles in payloads.
 
 ## 4. Shiki Scope Modes
 
 ### `shikiScopeMode: 'color'`
 
-- scope name is color-derived (example: `hl-shiki-24292e-f0`)
-- best for one fixed theme output
-- weak for long-term CSS governance
+- scope name is color-derived
+- closest to selected Shiki theme output
+- less maintainable for long-term CSS governance
 
 ### `shikiScopeMode: 'semantic'`
 
-- scope name is TextMate-like semantic scope (example: `hl-shiki-storage-type-js`)
-- useful for inspection and detailed mapping
-- more granular and harder to maintain as a global design token set
+- scope name is TextMate-like semantic scope
+- useful for analysis and fine-grained mapping
+- usually more complex than needed for site-wide design tokens
 
 ### `shikiScopeMode: 'keyword'`
 
-- scope name is plugin bucket name (example: `hl-shiki-keyword`, `hl-shiki-number`)
-- best for project-wide CSS control and light/dark theming
+- scope name is plugin bucket name
+- best for long-term CSS-managed theming
 
-## 5. Light/Dark Operation
+## 5. Light/Dark Behavior (Important)
 
-### Pattern A: CSS-managed (recommended)
+### Initial apply
 
-1. set `includeScopeStyles: false`
-2. style scopes in external CSS
-3. use `prefers-color-scheme` / CSS variables
+- `applyCustomHighlights(root, { colorScheme: 'auto' })` resolves current scheme at apply time.
 
-### Pattern B: payload-embedded
+### After page is already open and OS/browser theme changes
 
-- set `includeScopeStyles: true`
-- optionally set `customHighlight.theme`
-- styles are generated at render time for that theme
+- `applyCustomHighlights(...)` does not automatically rerun by itself.
+- You need either:
+  1. explicit re-apply call, or
+  2. observer with color-scheme watch.
 
-Note:
+Example with automatic watch:
 
-- `customHighlight.theme` is passed to Shiki `codeToTokens(...)`
-- if `theme` is omitted, behavior depends on your Shiki highlighter setup
-- payload-embedded mode is single-theme per render output
+```js
+const lazy = observeCustomHighlights(document, {
+  applyOptions: { colorScheme: 'auto', incremental: true },
+  watchColorScheme: true,
+})
+```
 
-## 6. highlight.js Provider in API Mode
+With `watchColorScheme: true`, after the first apply, `prefers-color-scheme` changes trigger re-apply.
 
-- provider: `customHighlight.provider: 'hljs'`
-- scope names are hljs-derived (example: `hl-hljs-keyword`)
-- `scopeStyles` is usually not emitted
-- external `::highlight(...)` CSS is expected
+## 6. Theme Option Shapes
 
-For markup mode, continue to use official highlight.js theme CSS as usual.
+`customHighlight.theme` supports:
 
-## 7. Supported CSS Properties in `::highlight(...)`
+- `string` (single-theme payload)
+- `{ light, dark, default? }` (dual-theme payload with additive `v:1` fields)
 
-In current browser behavior, only a subset is reliable.
+Notes:
+
+- object form runs Shiki tokenization twice (`light` + `dark`)
+- payload size can grow (especially in `shikiScopeMode: 'color'`)
+
+## 7. Runtime and CSS Constraints
+
+`::highlight(...)` reliably supports only a subset of properties.
 This plugin emits/uses:
 
 - `color`
@@ -101,40 +127,30 @@ This plugin emits/uses:
 - `text-decoration`
 - `text-shadow`
 
-Not relied on:
+Do not expect full token-span parity for properties like:
 
 - `font-style`
 - `font-weight`
 
-So full span-level visual parity (especially italic/bold themes) is not guaranteed in API mode.
+## 8. highlight.js Provider Notes
 
-## 8. CLI / Script-Based Color Control
+For `customHighlight.provider: 'hljs'`:
 
-This plugin does not ship a standalone CLI.
+- scope names are hljs-derived (`hl-hljs-*`)
+- `scopeStyles` is typically not emitted
+- external `::highlight(...)` CSS is the standard approach
 
-You still control color in script-driven flows (build scripts, watchers, editor extension host) via options:
+For normal markup highlighting with highlight.js, continue using highlight.js theme CSS.
 
-- `customHighlight.provider`
-- `customHighlight.theme`
-- `customHighlight.shikiScopeMode`
-- `customHighlight.includeScopeStyles`
+## 9. Preset CSS Provenance
 
-Not directly supported by one plugin option:
-
-- per-bucket literal color assignment like `keyword=#ff0000`
-- automatic full stylesheet generation from one flag
-
-## 9. Preset CSS Provenance and License
-
-`docs/default-highlight-theme.css` is a repository preset for quick start.
+`docs/default-highlight-theme.css` is an optional repository preset.
 
 Palette basis:
 
-- highlight.js `github.css` (light)
-- highlight.js `github-dark.css` (dark)
+- highlight.js `github.css`
+- highlight.js `github-dark.css`
 
-License/provenance references:
+License reference:
 
-- `node_modules/highlight.js/styles/github.css`
-- `node_modules/highlight.js/styles/github-dark.css`
 - `node_modules/highlight.js/LICENSE` (BSD-3-Clause)

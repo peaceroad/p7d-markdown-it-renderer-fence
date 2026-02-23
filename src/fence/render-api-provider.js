@@ -65,6 +65,52 @@ const normalizeShikiScopeMode = (mode) => {
   return null
 }
 
+const normalizeThemeName = (name) => {
+  if (typeof name !== 'string') return ''
+  return name.trim()
+}
+
+const normalizeCustomHighlightTheme = (theme) => {
+  const singleTheme = normalizeThemeName(theme)
+  if (singleTheme) {
+    return {
+      singleTheme,
+      themeVariants: null,
+      defaultVariant: '',
+    }
+  }
+  if (!theme || typeof theme !== 'object' || Array.isArray(theme)) {
+    return {
+      singleTheme: '',
+      themeVariants: null,
+      defaultVariant: '',
+    }
+  }
+  const lightTheme = normalizeThemeName(theme.light)
+  const darkTheme = normalizeThemeName(theme.dark)
+  if (!lightTheme && !darkTheme) {
+    return {
+      singleTheme: '',
+      themeVariants: null,
+      defaultVariant: '',
+    }
+  }
+  if (!lightTheme || !darkTheme) {
+    return {
+      singleTheme: lightTheme || darkTheme,
+      themeVariants: null,
+      defaultVariant: '',
+    }
+  }
+  let defaultVariant = String(theme.default || '').trim().toLowerCase()
+  if (defaultVariant !== 'light' && defaultVariant !== 'dark') defaultVariant = 'light'
+  return {
+    singleTheme: '',
+    themeVariants: { light: lightTheme, dark: darkTheme },
+    defaultVariant,
+  }
+}
+
 const buildShikiInternalLangAliasMap = (highlighter) => {
   if (!highlighter || typeof highlighter.getLoadedLanguages !== 'function' || typeof highlighter.getLanguage !== 'function') {
     return null
@@ -101,6 +147,19 @@ const normalizeCustomHighlightOpt = (opt = {}) => {
   next.scopePrefix = next.scopePrefix == null ? 'hl' : String(next.scopePrefix)
   next.includeScopeStyles = next.includeScopeStyles !== false
   next.shikiScopeMode = normalizeShikiScopeMode(next.shikiScopeMode) || 'auto'
+  const normalizedTheme = normalizeCustomHighlightTheme(next.theme)
+  next._singleTheme = normalizedTheme.singleTheme
+  next._themeVariants = normalizedTheme.themeVariants
+  next._themeVariantDefault = normalizedTheme.defaultVariant
+  if (normalizedTheme.themeVariants) {
+    next.theme = {
+      light: normalizedTheme.themeVariants.light,
+      dark: normalizedTheme.themeVariants.dark,
+      default: normalizedTheme.defaultVariant,
+    }
+  } else {
+    next.theme = normalizedTheme.singleTheme || null
+  }
   if (typeof next.shikiKeywordClassifier !== 'function') next.shikiKeywordClassifier = null
   if (typeof next.shikiKeywordLangResolver !== 'function') next.shikiKeywordLangResolver = null
   next.shikiKeywordLangAliases = normalizeShikiKeywordLangAliasMap(next.shikiKeywordLangAliases)
@@ -175,6 +234,50 @@ const getScopeStyleKey = (style) => {
   if (style.textDecoration) key += `td:${style.textDecoration};`
   if (style.textShadow) key += `ts:${style.textShadow};`
   return key
+}
+
+const sameStringArray = (a, b) => {
+  if (a === b) return true
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false
+  }
+  return true
+}
+
+const sameRangeTuples = (a, b) => {
+  if (a === b) return true
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    const left = a[i]
+    const right = b[i]
+    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false
+    for (let j = 0; j < left.length; j++) {
+      if (left[j] !== right[j]) return false
+    }
+  }
+  return true
+}
+
+const sameScopeStyles = (a, b) => {
+  const left = Array.isArray(a) ? a : null
+  const right = Array.isArray(b) ? b : null
+  if (left === right) return true
+  if (!left || !right || left.length !== right.length) return false
+  for (let i = 0; i < left.length; i++) {
+    const lv = left[i]
+    const rv = right[i]
+    if (lv === rv) continue
+    if (!lv || !rv || typeof lv !== 'object' || typeof rv !== 'object') return false
+    const lk = Object.keys(lv)
+    const rk = Object.keys(rv)
+    if (lk.length !== rk.length) return false
+    for (let j = 0; j < lk.length; j++) {
+      const key = lk[j]
+      if (lv[key] !== rv[key]) return false
+    }
+  }
+  return true
 }
 
 const getLogicalLinesAndOffsets = (text) => {
@@ -487,6 +590,7 @@ const buildApiPayload = (entries, text, lang, engine, scopePrefix, includeScopeS
   const scopes = []
   const ranges = []
   const scopeStyles = includeScopeStyles ? [] : null
+  let hasScopeStyles = false
   const scopeKeyToIndex = new Map()
   const usedScopeNames = new Map()
   const textLength = text.length
@@ -507,7 +611,10 @@ const buildApiPayload = (entries, text, lang, engine, scopePrefix, includeScopeS
       const scopeName = uniqueHighlightName(baseName, usedScopeNames)
       scopeIndex = scopes.length
       scopes.push(scopeName)
-      if (scopeStyles) scopeStyles.push(style)
+      if (scopeStyles) {
+        scopeStyles.push(style)
+        if (style) hasScopeStyles = true
+      }
       scopeKeyToIndex.set(key, scopeIndex)
     }
     ranges.push([scopeIndex, start, end])
@@ -522,7 +629,7 @@ const buildApiPayload = (entries, text, lang, engine, scopePrefix, includeScopeS
     scopes,
     ranges,
   }
-  if (scopeStyles && scopeStyles.some(Boolean)) payload.scopeStyles = scopeStyles
+  if (scopeStyles && hasScopeStyles) payload.scopeStyles = scopeStyles
   return payload
 }
 
@@ -550,13 +657,14 @@ const pushLineFeatureRanges = (entries, content, emphasizeLines, setEmphasizeLin
   }
 }
 
-const buildShikiTokenOption = (chOpt, targetLang) => {
+const buildShikiTokenOption = (chOpt, targetLang, themeOverride = '') => {
   const base = chOpt && chOpt._shikiTokenOptionBase
-  if (!base) return { lang: targetLang }
-  return Object.assign({ lang: targetLang }, base)
+  const option = base ? Object.assign({ lang: targetLang }, base) : { lang: targetLang }
+  if (themeOverride) option.theme = themeOverride
+  return option
 }
 
-const getApiProviderEntries = (token, lang, chOpt, md, env) => {
+const getApiProviderEntries = (token, lang, chOpt, md, env, override) => {
   const context = { token, md, env, option: chOpt }
   if (chOpt.provider === 'custom') {
     const getRanges = chOpt._customGetRanges
@@ -590,12 +698,14 @@ const getApiProviderEntries = (token, lang, chOpt, md, env) => {
   }
 
   const resolvedLang = lang || chOpt.defaultLang || 'text'
+  const overrideTheme = normalizeThemeName(override && override.theme)
+  const themeForPass = overrideTheme || chOpt._singleTheme
   let tokenResult
   try {
-    tokenResult = chOpt.highlighter.codeToTokens(token.content, buildShikiTokenOption(chOpt, resolvedLang))
+    tokenResult = chOpt.highlighter.codeToTokens(token.content, buildShikiTokenOption(chOpt, resolvedLang, themeForPass))
   } catch (err) {
     if (resolvedLang !== 'text') {
-      tokenResult = chOpt.highlighter.codeToTokens(token.content, buildShikiTokenOption(chOpt, 'text'))
+      tokenResult = chOpt.highlighter.codeToTokens(token.content, buildShikiTokenOption(chOpt, 'text', themeForPass))
     } else {
       throw err
     }
@@ -605,8 +715,52 @@ const getApiProviderEntries = (token, lang, chOpt, md, env) => {
   return createRangesFromShikiTokens(resolvedLang, tokenLines, chOpt)
 }
 
+const buildApiPayloadVariantRecord = (variantPayload, basePayload) => {
+  const record = {}
+  if (!sameStringArray(variantPayload.scopes, basePayload.scopes)) record.scopes = variantPayload.scopes
+  if (!sameRangeTuples(variantPayload.ranges, basePayload.ranges)) record.ranges = variantPayload.ranges
+  const baseStyles = Array.isArray(basePayload.scopeStyles) ? basePayload.scopeStyles : null
+  const variantStyles = Array.isArray(variantPayload.scopeStyles) ? variantPayload.scopeStyles : null
+  if (!sameScopeStyles(variantStyles, baseStyles)) {
+    if (variantStyles) record.scopeStyles = variantStyles
+    else if (baseStyles) record.scopeStyles = []
+  }
+  return record
+}
+
+const createShikiDualThemePayloadForFence = (token, lang, opt, md, env, emphasizeLines, commentMarkValue) => {
+  const chOpt = opt.customHighlight
+  const themeVariants = chOpt._themeVariants
+  const lineFeatureEntries = []
+  if (chOpt.lineFeatureStrategy !== 'disable') {
+    pushLineFeatureRanges(lineFeatureEntries, token.content, emphasizeLines, opt.setEmphasizeLines, commentMarkValue)
+  }
+  const buildVariantPayload = (themeName) => {
+    const entries = getApiProviderEntries(token, lang, chOpt, md, env, { theme: themeName })
+    if (lineFeatureEntries.length) entries.push(...lineFeatureEntries)
+    return buildApiPayload(entries, token.content, lang, chOpt.provider, chOpt.scopePrefix, true)
+  }
+  const variants = {
+    light: buildVariantPayload(themeVariants.light),
+    dark: buildVariantPayload(themeVariants.dark),
+  }
+  const defaultVariant = chOpt._themeVariantDefault === 'dark' ? 'dark' : 'light'
+  const otherVariant = defaultVariant === 'dark' ? 'light' : 'dark'
+  const basePayload = variants[defaultVariant]
+  const payload = Object.assign({}, basePayload)
+  payload.defaultVariant = defaultVariant
+  payload.variants = {
+    [defaultVariant]: {},
+    [otherVariant]: buildApiPayloadVariantRecord(variants[otherVariant], basePayload),
+  }
+  return payload
+}
+
 const createApiPayloadForFence = (token, lang, opt, md, env, emphasizeLines, commentMarkValue) => {
   const chOpt = opt.customHighlight
+  if (chOpt.provider === 'shiki' && chOpt.includeScopeStyles !== false && chOpt._themeVariants) {
+    return createShikiDualThemePayloadForFence(token, lang, opt, md, env, emphasizeLines, commentMarkValue)
+  }
   const entries = getApiProviderEntries(token, lang, chOpt, md, env)
   if (chOpt.lineFeatureStrategy !== 'disable') {
     pushLineFeatureRanges(entries, token.content, emphasizeLines, opt.setEmphasizeLines, commentMarkValue)

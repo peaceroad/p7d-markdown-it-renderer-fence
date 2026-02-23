@@ -49,8 +49,9 @@ Plugin flow:
   - `@peaceroad/markdown-it-renderer-fence` (compat dispatcher)
   - `@peaceroad/markdown-it-renderer-fence/markup-highlight` (markup-only load path)
   - `@peaceroad/markdown-it-renderer-fence/custom-highlight` (custom-highlight mode load path)
+  - `@peaceroad/markdown-it-renderer-fence/custom-highlight-runtime` (runtime-only load path for browser apply/observe/clear)
 - `lineEndSpanThreshold` is the main option; `setLineEndSpan` is an alias.
-- `highlightRenderer` supports `'markup'` (default) and `'api'`.
+- `highlightRenderer` supports `'markup'` (default), `'api'`, and alias `'custom-highlight-api'`.
 - `customHighlight.provider`:
   - `shiki`: requires `customHighlight.highlighter.codeToTokens`, and it must be synchronous.
   - `hljs`: uses `customHighlight.hljsHighlight` (or `customHighlight.highlight`, or `md.options.highlight`) and supports highlight.js result object (`_emitter`) or HTML string result.
@@ -65,12 +66,15 @@ Plugin flow:
 - Payload helpers are exported: `getCustomHighlightPayloadMap`, `renderCustomHighlightPayloadScript`, `renderCustomHighlightScopeStyleTag`.
 - Payload version helpers are exported: `customHighlightPayloadSchemaVersion`, `customHighlightPayloadSupportedVersions`.
 - Demo/runtime helper `test/custom-highlight/pre-highlight.js`:
-  - re-apply時の `::highlight(...)` 重複挿入を避けるため、style rule registry を保持。
+  - re-apply時の `::highlight(...)` style rule registry を保持し、同名でも CSS が変わった場合は更新ルールを追加できる。
   - payload `scopeStyles` は `::highlight()` で有効なプロパティのみ出力（`color` / `background-color` / `text-decoration` / `text-shadow`）。
 - `onFenceDecision` option can be used as a debug hook to inspect per-fence branch decisions (renderer path, fallback, disabled features).
 - `onFenceDecisionTiming: true` adds `timings` to `onFenceDecision` payload (`totalMs`, plus branch counters such as `highlightMs` / `providerMs` / `lineSplitMs` / `attrNormalizeMs` when available).
 - API payload `scopeStyles` is emitted only when at least one scope has style data.
 - `customHighlight.includeScopeStyles: false` forces payload without `scopeStyles` even when styles are available (CSS-managed mode).
+- `customHighlight.theme` supports both:
+  - string (single-theme payload)
+  - object `{ light, dark, default? }` (dual-theme payload with additive `v:1` `variants`)
 - `customHighlight.shikiScopeMode` is the canonical Shiki naming option:
   - `auto`, `color`, `semantic`, `keyword`.
   - 旧 alias 名（`json` / `bucket` / `keyword-only` など）は未リリース整理で削除済み。
@@ -93,6 +97,7 @@ Plugin flow:
   - 例: SQL の `true` を `literal` として扱う、HTML の `attribute-name` を `attribute` 優先で扱う。
 - `applyCustomHighlights` targets both `pre > code` and `pre > samp` in API mode.
 - Runtime highlight names are scope-based (shared across blocks), and `applyCustomHighlights` rebuilds/sets them per apply pass for the target root.
+- `applyCustomHighlights(..., { colorScheme })` supports `'auto' | 'light' | 'dark'` for variant selection when payload has `variants`.
 - `applyCustomHighlights(..., { incremental: true })` skips re-apply when payload and target block node references are unchanged.
   - Payload digest/state build is performed only in incremental mode (non-incremental path avoids this overhead).
   - When incremental apply is needed, unchanged blocks reuse cached Range computation to reduce repeated TreeWalker work.
@@ -101,6 +106,7 @@ Plugin flow:
 - `observeCustomHighlights(root, options)` is an optional lazy wrapper around `IntersectionObserver`:
   - default selector: `pre[data-pre-highlight]`
   - on first intersecting entry (`once: true` default), it triggers `applyCustomHighlights`.
+  - `watchColorScheme: true` with `applyOptions.colorScheme: 'auto'` keeps runtime highlights in sync after `prefers-color-scheme` changes.
 - API provider hooks are normalized once at plugin init (`_customGetRanges`, `_hljsHighlightFn`, `_shikiTokenOptionBase`) to reduce per-fence branching overhead.
 - Runtime version policy options:
   - `{ strictVersion: true }` accepts only `v: 1`

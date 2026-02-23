@@ -11,12 +11,15 @@ import {
   customHighlightEnvInitRuleName,
   customHighlightPayloadSchemaVersion,
   customHighlightPayloadSupportedVersions,
+  runtimeFallbackReasonSet,
   customHighlightSeqEnvKey,
 } from './render-api-constants.js'
 import {
+  isNormalizedCustomHighlightOpt,
   normalizeCustomHighlightOpt,
   renderCustomHighlightPayloadScript,
   renderCustomHighlightScopeStyleTag,
+  shouldApplyApiFallbackForReason,
 } from './render-api-provider.js'
 import {
   getFenceHtml,
@@ -25,8 +28,13 @@ import {
   applyCustomHighlights,
   clearCustomHighlights,
   observeCustomHighlights,
-  shouldRuntimeFallback,
 } from './render-api-runtime.js'
+
+const shouldRuntimeFallback = (reason, opt = {}) => {
+  const chOpt = isNormalizedCustomHighlightOpt(opt) ? opt : normalizeCustomHighlightOpt(opt)
+  if (!runtimeFallbackReasonSet.has(reason)) return false
+  return shouldApplyApiFallbackForReason(chOpt, reason)
+}
 
 const mditRendererFenceCustomHighlight = (md, option) => {
   const opt = {
@@ -67,7 +75,7 @@ const mditRendererFenceCustomHighlight = (md, option) => {
   } else if (opt.customHighlight.provider === 'shiki') {
     opt.customHighlight._hasShikiHighlighter = !!(opt.customHighlight.highlighter && typeof opt.customHighlight.highlighter.codeToTokens === 'function')
     const tokenOptionBase = {}
-    if (opt.customHighlight.theme) tokenOptionBase.theme = opt.customHighlight.theme
+    if (opt.customHighlight._singleTheme) tokenOptionBase.theme = opt.customHighlight._singleTheme
     if (opt.customHighlight.shikiScopeMode === 'semantic' || opt.customHighlight.shikiScopeMode === 'keyword') {
       tokenOptionBase.includeExplanation = 'scopeName'
     }
