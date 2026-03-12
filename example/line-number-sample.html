@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>renderer-fence line number sample</title>
+  <link rel="stylesheet" href="./line-number.css">
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: sans-serif;
+      --sample-border: #d7d7d7;
+      --sample-surface: #f4f4f4;
+      --sample-text: #222;
+      --sample-muted: #666;
+    }
+
+    body {
+      margin: 2rem;
+      line-height: 1.5;
+    }
+
+    main {
+      max-width: 72rem;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      margin-top: 0;
+      margin-bottom: 1.5rem;
+    }
+
+    p code {
+      display: inline;
+      padding: 0.1em 0.35em;
+      background: var(--sample-surface);
+      color: var(--sample-text);
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 0.95em;
+    }
+
+    section + section {
+      margin-top: 2rem;
+    }
+
+    .sample-grid {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: start;
+    }
+
+    .panel {
+      min-width: 0;
+    }
+
+    .panel h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1rem;
+    }
+
+    .panel pre {
+      margin: 0;
+    }
+
+    .panel pre > code,
+    .panel pre > samp {
+      display: block;
+      overflow: auto;
+      padding: 1rem;
+      background: var(--sample-surface);
+      color: var(--sample-text);
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 0.95rem;
+      border: 1px solid var(--sample-border);
+      box-sizing: border-box;
+    }
+
+    .panel.source pre > code {
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      word-break: normal;
+    }
+
+    .panel.preview pre > code,
+    .panel.preview pre > samp {
+      min-height: 100%;
+    }
+
+    .panel-note {
+      margin: 0 0 0.75rem;
+      color: var(--sample-muted);
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 960px) {
+      .sample-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --sample-border: #555;
+        --sample-surface: #2b2b2b;
+        --sample-text: #ddd;
+        --sample-muted: #aaa;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Line Number Sample</h1>
+    <p>This file shows the Markdown input, preview, and HTML output contract used by <code>start</code>, <code>line-number-skip</code>, and <code>line-number-set</code>.</p>
+
+    <section>
+      <h2>Basic start</h2>
+      <div class="sample-grid">
+        <article class="panel source">
+          <h3>Markdown</h3>
+          <pre><code>```txt {line-number-start="25"}
+a
+b
+```</code></pre>
+        </article>
+        <article class="panel preview">
+          <h3>Preview</h3>
+          <pre><code class="language-txt" data-pre-start="25" style="counter-set:pre-line-number 25;"><span class="pre-line">a</span>
+<span class="pre-line">b</span>
+</code></pre>
+        </article>
+        <article class="panel source">
+          <h3>HTML</h3>
+          <pre><code>&lt;pre&gt;&lt;code class="language-txt" data-pre-start="25" style="counter-set:pre-line-number 25;"&gt;&lt;span class="pre-line"&gt;a&lt;/span&gt;
+&lt;span class="pre-line"&gt;b&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;</code></pre>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Skip lines</h2>
+      <div class="sample-grid">
+        <article class="panel source">
+          <h3>Markdown</h3>
+          <pre><code>```txt {start="25" line-number-skip="2,4-5"}
+a
+b
+c
+d
+e
+```</code></pre>
+        </article>
+        <article class="panel preview">
+          <h3>Preview</h3>
+          <pre><code class="language-txt" data-pre-start="25" data-pre-line-number-skip="2,4-5" style="counter-set:pre-line-number 25;"><span class="pre-line">a</span>
+<span class="pre-line pre-line-no-number">b</span>
+<span class="pre-line">c</span>
+<span class="pre-line pre-line-no-number">d</span>
+<span class="pre-line pre-line-no-number">e</span>
+</code></pre>
+        </article>
+        <article class="panel source">
+          <h3>HTML</h3>
+          <pre><code>&lt;pre&gt;&lt;code class="language-txt" data-pre-start="25" data-pre-line-number-skip="2,4-5" style="counter-set:pre-line-number 25;"&gt;&lt;span class="pre-line"&gt;a&lt;/span&gt;
+&lt;span class="pre-line pre-line-no-number"&gt;b&lt;/span&gt;
+&lt;span class="pre-line"&gt;c&lt;/span&gt;
+&lt;span class="pre-line pre-line-no-number"&gt;d&lt;/span&gt;
+&lt;span class="pre-line pre-line-no-number"&gt;e&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;</code></pre>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Set line numbers</h2>
+      <div class="sample-grid">
+        <article class="panel source">
+          <h3>Markdown</h3>
+          <pre><code>```txt {start="25" line-number-set="3:136,5:220"}
+a
+b
+c
+d
+e
+f
+```</code></pre>
+        </article>
+        <article class="panel preview">
+          <h3>Preview</h3>
+          <pre><code class="language-txt" data-pre-start="25" data-pre-line-number-set="3:136,5:220" style="counter-set:pre-line-number 25;"><span class="pre-line">a</span>
+<span class="pre-line">b</span>
+<span class="pre-line" style="counter-set:pre-line-number 136;">c</span>
+<span class="pre-line">d</span>
+<span class="pre-line" style="counter-set:pre-line-number 220;">e</span>
+<span class="pre-line">f</span>
+</code></pre>
+        </article>
+        <article class="panel source">
+          <h3>HTML</h3>
+          <pre><code>&lt;pre&gt;&lt;code class="language-txt" data-pre-start="25" data-pre-line-number-set="3:136,5:220" style="counter-set:pre-line-number 25;"&gt;&lt;span class="pre-line"&gt;a&lt;/span&gt;
+&lt;span class="pre-line"&gt;b&lt;/span&gt;
+&lt;span class="pre-line" style="counter-set:pre-line-number 136;"&gt;c&lt;/span&gt;
+&lt;span class="pre-line"&gt;d&lt;/span&gt;
+&lt;span class="pre-line" style="counter-set:pre-line-number 220;"&gt;e&lt;/span&gt;
+&lt;span class="pre-line"&gt;f&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;</code></pre>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Skip and set</h2>
+      <p class="panel-note">The skipped line stays blank. The next visible line can still start from the explicitly set value.</p>
+      <div class="sample-grid">
+        <article class="panel source">
+          <h3>Markdown</h3>
+          <pre><code>```txt {start="1" line-number-skip="3" line-number-set="4:136"}
+a
+b
+c
+d
+```</code></pre>
+        </article>
+        <article class="panel preview">
+          <h3>Preview</h3>
+          <pre><code class="language-txt" data-pre-start="1" data-pre-line-number-skip="3" data-pre-line-number-set="4:136" style="counter-set:pre-line-number 1;"><span class="pre-line">a</span>
+<span class="pre-line">b</span>
+<span class="pre-line pre-line-no-number">c</span>
+<span class="pre-line" style="counter-set:pre-line-number 136;">d</span>
+</code></pre>
+        </article>
+        <article class="panel source">
+          <h3>HTML</h3>
+          <pre><code>&lt;pre&gt;&lt;code class="language-txt" data-pre-start="1" data-pre-line-number-skip="3" data-pre-line-number-set="4:136" style="counter-set:pre-line-number 1;"&gt;&lt;span class="pre-line"&gt;a&lt;/span&gt;
+&lt;span class="pre-line"&gt;b&lt;/span&gt;
+&lt;span class="pre-line pre-line-no-number"&gt;c&lt;/span&gt;
+&lt;span class="pre-line" style="counter-set:pre-line-number 136;"&gt;d&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;</code></pre>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -21,7 +21,7 @@ Plugin flow:
    - Add language class (`langPrefix + lang`) unless `samp`.
    - Normalize `start`/`pre-start`/`line-number-start` -> `data-pre-start` and append counter-set style.
    - Normalize `line-number-skip` -> `data-pre-line-number-skip`.
-   - Normalize `line-number-reset` -> `data-pre-line-number-reset`.
+   - Normalize `line-number-set` -> `data-pre-line-number-set`.
    - Normalize `em-lines`/`emphasize-lines` -> `data-pre-emphasis`.
    - Normalize `wrap`/`pre-wrap` -> `data-pre-wrap` + optional inline `preWrapStyle`.
    - Normalize `comment-mark` -> `data-pre-comment-mark` for comment markers.
@@ -40,10 +40,10 @@ Plugin flow:
 5. Apply line features:
    - In markup mode: only when not in highlight-pre passthrough.
    - In api mode: line features are represented as payload ranges (`em-lines`, `comment-mark`), and optional structural spans are controlled by `customHighlight.lineFeatureStrategy`.
-   - `setLineNumber`, `line-number-skip`, `line-number-reset`, `setEmphasizeLines`, `lineEndSpanThreshold`, `comment-mark`.
+   - `setLineNumber`, `line-number-skip`, `line-number-set`, `setEmphasizeLines`, `lineEndSpanThreshold`, `comment-mark`.
    - Uses `splitFenceBlockToLines` to wrap lines and preserve tag balance (line split path is LF/CRLF-oriented; markdown-it fence content is LF-normalized).
    - `comment-mark` pre-scan is intentionally deferred until after `useHighlightPre` decision.
-   - If highlighted output line count does not match source logical line count, `comment-mark`, `line-number-skip`, and `line-number-reset` are skipped to avoid wrong mapping.
+   - If highlighted output line count does not match source logical line count, `comment-mark`, `line-number-skip`, and `line-number-set` are skipped to avoid wrong mapping.
 6. Render final `<pre><code|samp>` with ordered attrs.
 
 ## Options and compatibility notes
@@ -117,15 +117,16 @@ Plugin flow:
   - `v` is shared across providers by design (`engine` is provenance; runtime consumes one normalized payload shape).
 - `useHighlightPre` keeps highlight-provided `<pre><code>` and disables line-splitting features; `<samp>` conversion is not possible in this mode.
 - `line-number-start` is a long-form alias of `start`; rendered output still uses `data-pre-start`.
-- `line-number-skip` adds `pre-line-no-number` on targeted line wrappers (line-number mode only).
-- `line-number-reset` adds per-line `counter-set:pre-line-number ...;` style on targeted line wrappers (line-number mode only).
+- `line-number-skip` adds `pre-line-no-number` on targeted line wrappers (line-number mode only); consumer CSS should suppress increment on `span.pre-line.pre-line-no-number::after`.
+- `line-number-set` adds per-line `counter-set:pre-line-number ...;` style on targeted line wrappers (line-number mode only, matching the project CSS contract where `span.pre-line::after` increments the counter after the label is shown).
+- `line-number-reset` was removed; conflicting old attrs are dropped during normalization rather than treated as aliases.
 - `setPreWrapStyle` controls inline style output for pre-wrap; data-pre-wrap is still added.
 - `comment-mark` applies to code blocks and relies on line splitting.
 - `setEmphasizeLines: false` now skips `em-lines` parsing on the hot path.
-- `line-number-skip` / `line-number-reset` values are forwarded during attr normalization and parsed lazily only when line-number rendering needs them.
+- `line-number-skip` / `line-number-set` values are forwarded during attr normalization and parsed lazily only when line-number rendering needs them.
 - `em-lines` parser accepts open-ended ranges (`3-`, `-2`) and normalizes reversed ranges (`5-3` -> `3-5`).
 - `comment-mark` scanning is skipped when `useHighlightPre` passthrough is active.
-- `start` / `line-number-start` line numbering is activated only for non-negative safe integers (`0` is allowed); invalid/empty values keep `data-pre-start` but do not enable counter style or line-number wrapping.
+- `start` / `line-number-start` line numbering is activated only for non-negative safe integers (`0` is allowed); invalid/empty values keep `data-pre-start` but do not enable counter style or line-number wrapping. When active, emitted `counter-set` uses the displayed start value and relies on the CSS contract that increments in `span.pre-line::after`.
 - Logical line counting for mismatch guards accepts CRLF/LF/CR, is shared for source and highlighted content, and is computed lazily only when advanced line-number controls, emphasis normalization, or comment-mark guards need it.
 - markdown-it fence `token.content` is effectively LF-normalized; mismatch guard mainly protects against highlighter-side newline transformation.
 - language class からの再抽出は class token split ベースで実装（`#` / `+` を含む言語名、例: `c#`, `c++` を保持）。
@@ -197,7 +198,7 @@ Plugin flow:
     - range boundary invariants
 - passthrough test includes wrap + em-lines to verify attribute merging and disabled line-splitting.
 - start-invalid fixture verifies `start=""`, non-numeric, and decimal inputs do not activate line-number processing.
-- advanced line-number fixture (`example-line-number-advanced.txt`) verifies `line-number-start`, `line-number-skip`, `line-number-reset`, open-ended skip ranges, and canonical `data-pre-*` paths.
+- advanced line-number fixture (`example-line-number-advanced.txt`) verifies `line-number-start`, `line-number-skip`, `line-number-set`, open-ended skip ranges, overlap invalidation, and canonical `data-pre-*` paths.
 - comment-mark mismatch fixture (`example-comment-line-mismatch.txt`) verifies comment marking is skipped when highlighted logical line count diverges from source.
 - mixed-newline inline test verifies CRLF/LF mixed markdown still maps line features correctly.
 - mixed-newline case is kept inline in `test/test.js` (not file fixture) to avoid Git line-ending normalization masking the scenario.

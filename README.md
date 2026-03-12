@@ -115,7 +115,7 @@ Note:
 
 - `samp` rendering for `samp`, `shell`, `console` languages.
 - line number wrapping via `start` (`line-number-start` long form) / `data-pre-start`.
-- line number skip/reset controls via `line-number-skip` / `line-number-reset`.
+- line number skip/set controls via `line-number-skip` / `line-number-set`.
 - emphasized lines via `em-lines` / `emphasize-lines`.
 - optional line-end spacer via `lineEndSpanThreshold`.
 - optional pre-wrap support via `wrap` / `pre-wrap`.
@@ -157,7 +157,7 @@ console.log(a)
 Advanced line number control:
 
 ~~~md
-```txt {start="25" line-number-skip="5" line-number-reset="6:136"}
+```txt {start="25" line-number-skip="5" line-number-set="6:136"}
 line1
 line2
 line3
@@ -168,7 +168,7 @@ line6
 ~~~
 
 ```html
-<pre><code class="language-txt" data-pre-start="25" data-pre-line-number-skip="5" data-pre-line-number-reset="6:136" style="counter-set:pre-line-number 25;">
+<pre><code class="language-txt" data-pre-start="25" data-pre-line-number-skip="5" data-pre-line-number-set="6:136" style="counter-set:pre-line-number 25;">
 <span class="pre-line">line1</span>
 <span class="pre-line">line2</span>
 <span class="pre-line">line3</span>
@@ -235,31 +235,47 @@ echo 1
 - In that passthrough path, line-splitting features are intentionally disabled:
   - line numbers
   - `line-number-skip`
-  - `line-number-reset`
+  - `line-number-set`
   - `em-lines`
   - line-end spacer
   - `comment-mark`
   - `samp` conversion
 
-Official line-number CSS contract:
+Reference line-number CSS contract:
+
+Minimum counter contract:
 
 ```css
-.pre-line {
-  counter-increment: pre-line-number;
-}
-
-.pre-line::before {
+pre :is(code, samp)[data-pre-start] .pre-line::before {
   content: counter(pre-line-number);
 }
 
-.pre-line.pre-line-no-number {
-  counter-increment: none;
+pre :is(code, samp)[data-pre-start] .pre-line::after {
+  content: "";
+  counter-increment: pre-line-number;
 }
 
-.pre-line.pre-line-no-number::before {
+pre :is(code, samp)[data-pre-start] .pre-line.pre-line-no-number::before {
   content: "";
 }
+
+pre :is(code, samp)[data-pre-start] .pre-line.pre-line-no-number::after {
+  counter-increment: none;
+}
 ```
+
+Recommended display CSS:
+
+- See [`example/line-number.css`](./example/line-number.css) for the full reference stylesheet.
+- See [`example/line-number-sample.html`](./example/line-number-sample.html) for Markdown / Preview / HTML side-by-side examples.
+
+Note:
+
+- renderer-fence emits `counter-set` as the displayed line number value itself
+- the reference CSS increments the counter in `span.pre-line::after`, so `start="1"` maps directly to `counter-set:pre-line-number 1;`
+- `line-number-set="6:136"` similarly emits `counter-set:pre-line-number 136;` on that line wrapper
+- the minimum contract above is the required part; `example/line-number.css` adds gutter width, divider line, and whitespace handling
+- if a consumer uses a different counter strategy, its CSS must be aligned with this HTML contract
 
 ### Markup Options
 
@@ -287,13 +303,15 @@ Line-number attr syntax note:
 
 - `line-number-start` is the long form of `start`; rendered output still uses `data-pre-start`.
 - `line-number-skip` supports single values (`2`), ranges (`4-6`), and open-ended forms (`3-`).
-- `line-number-reset` uses `line:number` pairs (for example `6:136,14:220`).
-- `line-number-skip` / `line-number-reset` are applied only when source and highlighted logical line counts match; otherwise renderer falls back to plain sequential numbering.
+- `line-number-set` uses `line:number` pairs (for example `6:136,14:220`).
+- `line-number-skip` and `line-number-set` must not target the same source line. If they overlap, the skipped line stays blank and the conflicting `line-number-set` entry is ignored.
+- `line-number-skip` / `line-number-set` are applied only when source and highlighted logical line counts match; otherwise renderer falls back to plain sequential numbering.
 
 Migration note (`0.5.0`):
 
 - `comment-line` / `data-pre-comment-line` / `pre-comment-line` were removed
 - use `comment-mark` / `data-pre-comment-mark` / `pre-line-comment`
+- `line-number-reset` was removed; use `line-number-set`
 
 ## Custom Highlight API Mode (Experimental / Advanced)
 

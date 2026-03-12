@@ -1,0 +1,62 @@
+:root {
+  --line-number-width: 2em;
+  --line-number-gap: 0.5em;
+  --line-number-rule-gap: 0.25em;
+  --line-number-color: #666;
+  --line-number-rule-color: #ccc;
+}
+
+pre :is(code, samp)[data-pre-start] .pre-line {
+  display: block;
+  position: relative;
+  padding-inline-start: calc(var(--line-number-width) + var(--line-number-rule-gap) + var(--line-number-gap));
+  background-image: linear-gradient(var(--line-number-rule-color), var(--line-number-rule-color));
+  background-repeat: no-repeat;
+  background-size: 1px 100%;
+  background-position: calc(var(--line-number-width) + var(--line-number-rule-gap)) 0;
+}
+
+pre :is(code, samp)[data-pre-start] {
+  white-space: normal;
+}
+
+pre:not([data-pre-wrap]) :is(code, samp)[data-pre-start] .pre-line {
+  white-space: pre;
+}
+
+pre[data-pre-wrap] :is(code, samp)[data-pre-start] .pre-line {
+  white-space: break-spaces;
+  overflow-wrap: anywhere;
+}
+
+pre :is(code, samp)[data-pre-start] .pre-line::before {
+  content: counter(pre-line-number);
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  width: var(--line-number-width);
+  text-align: right;
+  color: var(--line-number-color);
+  padding-inline-end: var(--line-number-rule-gap);
+}
+
+pre :is(code, samp)[data-pre-start] .pre-line[data-pre-line-label]::before {
+  content: attr(data-pre-line-label);
+}
+
+pre :is(code, samp)[data-pre-start] .pre-line[data-pre-line-label-bold]::before {
+  font-weight: bold;
+}
+
+pre :is(code, samp)[data-pre-start] .pre-line::after {
+  content: "";
+  counter-increment: pre-line-number;
+}
+
+pre :is(code, samp)[data-pre-start] .pre-line.pre-line-no-number::before {
+  content: "";
+}
+
+pre :is(code, samp)[data-pre-start] .pre-line.pre-line-no-number::after {
+  counter-increment: none;
+}
