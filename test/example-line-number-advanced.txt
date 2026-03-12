@@ -25,7 +25,7 @@ e
 </code></pre>
 
 [Markdown]
-```txt {start="25" line-number-reset="3:136,5:220"}
+```txt {start="25" line-number-set="3:136,5:220"}
 a
 b
 c
@@ -34,7 +34,7 @@ e
 f
 ```
 [HTML]
-<pre><code class="language-txt" data-pre-start="25" data-pre-line-number-reset="3:136,5:220" style="counter-set:pre-line-number 25;"><span class="pre-line">a</span>
+<pre><code class="language-txt" data-pre-start="25" data-pre-line-number-set="3:136,5:220" style="counter-set:pre-line-number 25;"><span class="pre-line">a</span>
 <span class="pre-line">b</span>
 <span class="pre-line" style="counter-set:pre-line-number 136;">c</span>
 <span class="pre-line">d</span>
@@ -43,17 +43,17 @@ f
 </code></pre>
 
 [Markdown]
-```txt {start="1" line-number-skip="3" line-number-reset="3:136"}
+```txt {start="1" line-number-skip="3" line-number-set="4:136"}
 a
 b
 c
 d
 ```
 [HTML]
-<pre><code class="language-txt" data-pre-start="1" data-pre-line-number-skip="3" data-pre-line-number-reset="3:136" style="counter-set:pre-line-number 1;"><span class="pre-line">a</span>
+<pre><code class="language-txt" data-pre-start="1" data-pre-line-number-skip="3" data-pre-line-number-set="4:136" style="counter-set:pre-line-number 1;"><span class="pre-line">a</span>
 <span class="pre-line">b</span>
-<span class="pre-line pre-line-no-number" style="counter-set:pre-line-number 136;">c</span>
-<span class="pre-line">d</span>
+<span class="pre-line pre-line-no-number">c</span>
+<span class="pre-line" style="counter-set:pre-line-number 136;">d</span>
 </code></pre>
 
 [Markdown]
@@ -81,13 +81,27 @@ d
 </code></pre>
 
 [Markdown]
-```txt {data-pre-start="3" data-pre-line-number-skip="2" data-pre-line-number-reset="3:40"}
+```txt {data-pre-start="3" data-pre-line-number-skip="2" data-pre-line-number-set="3:40"}
 a
 b
 c
 ```
 [HTML]
-<pre><code class="language-txt" data-pre-start="3" data-pre-line-number-skip="2" data-pre-line-number-reset="3:40" style="counter-set:pre-line-number 3;"><span class="pre-line">a</span>
+<pre><code class="language-txt" data-pre-start="3" data-pre-line-number-skip="2" data-pre-line-number-set="3:40" style="counter-set:pre-line-number 3;"><span class="pre-line">a</span>
 <span class="pre-line pre-line-no-number">b</span>
 <span class="pre-line" style="counter-set:pre-line-number 40;">c</span>
+</code></pre>
+
+[Markdown]
+```txt {start="1" line-number-skip="3" line-number-set="3:136"}
+a
+b
+c
+d
+```
+[HTML]
+<pre><code class="language-txt" data-pre-start="1" data-pre-line-number-skip="3" data-pre-line-number-set="3:136" style="counter-set:pre-line-number 1;"><span class="pre-line">a</span>
+<span class="pre-line">b</span>
+<span class="pre-line pre-line-no-number">c</span>
+<span class="pre-line">d</span>
 </code></pre>

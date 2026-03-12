@@ -1935,9 +1935,9 @@ const runAdvancedLineNumberMismatchFallbackTest = () => {
       },
     }).use(mditRendererFence, opt).use(mditAttrs)
 
-    const html = mdMismatch.render('```mock {start="10" line-number-skip="2" line-number-reset="2:30"}\na\nb\n```\n')
+    const html = mdMismatch.render('```mock {start="10" line-number-skip="2" line-number-set="3:30"}\na\nb\n```\n')
     assert.ok(html.includes('data-pre-line-number-skip="2"'))
-    assert.ok(html.includes('data-pre-line-number-reset="2:30"'))
+    assert.ok(html.includes('data-pre-line-number-set="3:30"'))
     assert.ok(!html.includes('pre-line-no-number'))
     assert.ok(!html.includes('counter-set:pre-line-number 30;'))
     console.log('Test: advanced-line-number-mismatch-fallback >>>')
@@ -1962,9 +1962,9 @@ const runAdvancedLineNumberHighlightPreDisabledTest = () => {
       },
     }).use(mditRendererFence, { useHighlightPre: true }).use(mditAttrs)
 
-    const html = mdHighlightPre.render('```mock {start="5" line-number-skip="2" line-number-reset="2:30"}\na\nb\n```\n')
+    const html = mdHighlightPre.render('```mock {start="5" line-number-skip="2" line-number-set="3:30"}\na\nb\n```\n')
     assert.ok(html.includes('data-pre-line-number-skip="2"'))
-    assert.ok(html.includes('data-pre-line-number-reset="2:30"'))
+    assert.ok(html.includes('data-pre-line-number-set="3:30"'))
     assert.ok(!html.includes('pre-line-no-number'))
     assert.ok(!html.includes('<span class="pre-line">'))
     assert.ok(!html.includes('counter-set:pre-line-number 30;'))
@@ -1982,9 +1982,9 @@ const runApiAdvancedLineNumberTest = () => {
   console.log('api-advanced-line-number')
   try {
     const env = {}
-    const markdown = '```js {start="2" line-number-skip="2" line-number-reset="3:10"}\na\nb\nc\n```\n'
+    const markdown = '```js {start="2" line-number-skip="2" line-number-set="3:10"}\na\nb\nc\n```\n'
     const html = mdApiCustom.render(markdown, env)
-    const expected = '<pre data-pre-highlight="hl-1"><code class="language-js" data-pre-start="2" data-pre-line-number-skip="2" data-pre-line-number-reset="3:10" style="counter-set:pre-line-number 2;"><span class="pre-line">a</span>\n<span class="pre-line pre-line-no-number">b</span>\n<span class="pre-line" style="counter-set:pre-line-number 10;">c</span>\n</code></pre>\n'
+    const expected = '<pre data-pre-highlight="hl-1"><code class="language-js" data-pre-start="2" data-pre-line-number-skip="2" data-pre-line-number-set="3:10" style="counter-set:pre-line-number 2;"><span class="pre-line">a</span>\n<span class="pre-line pre-line-no-number">b</span>\n<span class="pre-line" style="counter-set:pre-line-number 10;">c</span>\n</code></pre>\n'
     assert.strictEqual(html, expected)
     assert.ok(env.rendererFenceCustomHighlights)
     assert.ok(env.rendererFenceCustomHighlights['hl-1'])
@@ -2012,10 +2012,45 @@ const runAdvancedLineNumberTaggedMarkupTest = () => {
       },
     }).use(mditRendererFence, opt).use(mditAttrs)
 
-    const markdown = '```mock {start="2" line-number-skip="2" line-number-reset="3:10"}\na\nb\nc\n```\n'
-    const expected = '<pre><code class="language-mock" data-pre-start="2" data-pre-line-number-skip="2" data-pre-line-number-reset="3:10" style="counter-set:pre-line-number 2;"><span class="pre-line"><span class="tok">a</span></span>\n<span class="pre-line pre-line-no-number"><span class="tok">b</span></span>\n<span class="pre-line" style="counter-set:pre-line-number 10;"><span class="tok">c</span></span>\n</code></pre>\n'
+    const markdown = '```mock {start="2" line-number-skip="2" line-number-set="3:10"}\na\nb\nc\n```\n'
+    const expected = '<pre><code class="language-mock" data-pre-start="2" data-pre-line-number-skip="2" data-pre-line-number-set="3:10" style="counter-set:pre-line-number 2;"><span class="pre-line"><span class="tok">a</span></span>\n<span class="pre-line pre-line-no-number"><span class="tok">b</span></span>\n<span class="pre-line" style="counter-set:pre-line-number 10;"><span class="tok">c</span></span>\n</code></pre>\n'
     assert.strictEqual(mdTagged.render(markdown), expected)
     console.log('Test: advanced-line-number-tagged-markup >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
+const runAdvancedLineNumberSetOverlapInvalidTest = () => {
+  console.log('===========================================================')
+  console.log('advanced-line-number-set-overlap-invalid')
+  try {
+    const html = md.render('```txt {start="1" line-number-skip="3" line-number-set="3:136"}\na\nb\nc\nd\n```\n')
+    assert.ok(html.includes('data-pre-line-number-skip="3"'))
+    assert.ok(html.includes('data-pre-line-number-set="3:136"'))
+    assert.ok(html.includes('<span class="pre-line pre-line-no-number">c</span>'))
+    assert.ok(!html.includes('counter-set:pre-line-number 136;'))
+    console.log('Test: advanced-line-number-set-overlap-invalid >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
+const runRemovedLineNumberResetAttrTest = () => {
+  console.log('===========================================================')
+  console.log('removed-line-number-reset-attr')
+  try {
+    const html = md.render('```txt {start="1" line-number-reset="3:136"}\na\nb\nc\n```\n')
+    assert.ok(!html.includes('data-pre-line-number-reset='))
+    assert.ok(!html.includes('counter-set:pre-line-number 136;'))
+    assert.ok(html.includes('style="counter-set:pre-line-number 1;"'))
+    console.log('Test: removed-line-number-reset-attr >>>')
     return true
   } catch (e) {
     console.log('incorrect:')
@@ -2119,6 +2154,8 @@ pass = runAdvancedLineNumberMismatchFallbackTest() && pass
 pass = runAdvancedLineNumberHighlightPreDisabledTest() && pass
 pass = runApiAdvancedLineNumberTest() && pass
 pass = runAdvancedLineNumberTaggedMarkupTest() && pass
+pass = runAdvancedLineNumberSetOverlapInvalidTest() && pass
+pass = runRemovedLineNumberResetAttrTest() && pass
 pass = runRuntimeApiReapplyTest() && pass
 pass = runRuntimeInlineScriptTest() && pass
 pass = runRuntimeIncrementalSkipTest() && pass

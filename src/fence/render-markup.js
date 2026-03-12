@@ -29,7 +29,7 @@ const renderFenceMarkup = (context, md, opt, slf) => {
   const startNumber = context.startNumber
   const emphasizeLines = context.emphasizeLines
   const lineNumberSkipValue = context.lineNumberSkipValue
-  const lineNumberResetValue = context.lineNumberResetValue
+  const lineNumberSetValue = context.lineNumberSetValue
   const wrapEnabled = context.wrapEnabled
   const preWrapValue = context.preWrapValue
   const commentMarkValue = context.commentMarkValue
@@ -118,9 +118,9 @@ const renderFenceMarkup = (context, md, opt, slf) => {
     normalizedEmphasis = normalizeEmphasisRanges(emphasizeLines, highlightedLogicalLineCount)
   }
   let lineNumberPlan = null
-  if (needLineNumber && (lineNumberSkipValue !== undefined || lineNumberResetValue !== undefined)) {
+  if (needLineNumber && (lineNumberSkipValue !== undefined || lineNumberSetValue !== undefined)) {
     ensureLogicalLineCounts()
-    lineNumberPlan = resolveAdvancedLineNumberPlan(lineNumberSkipValue, lineNumberResetValue, sourceLogicalLineCount, highlightedLogicalLineCount)
+    lineNumberPlan = resolveAdvancedLineNumberPlan(lineNumberSkipValue, lineNumberSetValue, sourceLogicalLineCount, highlightedLogicalLineCount)
   }
   const needEmphasis = normalizedEmphasis.length > 0
   const needEndSpan = opt.lineEndSpanThreshold > 0
@@ -165,7 +165,7 @@ const renderFenceMarkup = (context, md, opt, slf) => {
     renderer: 'markup',
     useHighlightPre,
     hasHighlightPre,
-    disabledFeatures: useHighlightPre ? ['setLineNumber', 'line-number-skip', 'line-number-reset', 'setEmphasizeLines', 'lineEndSpanThreshold', 'comment-mark', 'samp'] : [],
+    disabledFeatures: useHighlightPre ? ['setLineNumber', 'line-number-skip', 'line-number-set', 'setEmphasizeLines', 'lineEndSpanThreshold', 'comment-mark', 'samp'] : [],
   }
   if (timingEnabled) decision.timings = finalizeFenceTimings(timings, fenceStartedAt)
   emitFenceDecision(opt, decision)

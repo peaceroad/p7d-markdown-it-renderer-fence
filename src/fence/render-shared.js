@@ -190,7 +190,7 @@ const normalizeEmphasisRanges = (emphasizeLines, maxLine) => {
   return normalized
 }
 
-const getLineNumberResetEntries = (attrVal) => {
+const getLineNumberSetEntries = (attrVal) => {
   const str = String(attrVal ?? '')
   if (!str) return []
   const result = []
@@ -200,9 +200,9 @@ const getLineNumberResetEntries = (attrVal) => {
     const colon = part.indexOf(':')
     if (colon === -1) continue
     const lineNumber = parsePositiveLineIndex(part.slice(0, colon).trim())
-    const resetNumber = parseStartNumber(part.slice(colon + 1).trim())
-    if (lineNumber == null || resetNumber == null) continue
-    result.push([lineNumber, resetNumber])
+    const setNumber = parseStartNumber(part.slice(colon + 1).trim())
+    if (lineNumber == null || setNumber == null) continue
+    result.push([lineNumber, setNumber])
   }
   return result
 }
@@ -218,52 +218,51 @@ const createSparseLineFlagMap = (ranges, maxLine) => {
   return flags
 }
 
-const createSparseLineResetMap = (entries, maxLine) => {
+const createSparseLineSetMap = (entries, maxLine, hidden) => {
   if (!entries || !entries.length || maxLine <= 0) return null
-  const resets = []
+  const sets = []
   let hasValue = false
   for (let i = 0; i < entries.length; i++) {
     const line = entries[i][0]
     const value = entries[i][1]
     if (!Number.isSafeInteger(line) || line <= 0 || line > maxLine) continue
-    resets[line - 1] = value
+    if (hidden && hidden[line - 1]) continue
+    sets[line - 1] = value
     hasValue = true
   }
-  return hasValue ? resets : null
+  return hasValue ? sets : null
 }
 
-const buildAdvancedLineNumberPlan = (skipRanges, resetEntries, sourceLineCount, renderedLineCount) => {
+const buildAdvancedLineNumberPlan = (skipRanges, setEntries, lineCount) => {
   const hasSkip = !!(skipRanges && skipRanges.length)
-  const hasReset = !!(resetEntries && resetEntries.length)
-  if (!hasSkip && !hasReset) return null
-  if (!Number.isSafeInteger(sourceLineCount) || sourceLineCount <= 0) return null
-  if (sourceLineCount !== renderedLineCount) return null
-  const hidden = hasSkip ? createSparseLineFlagMap(skipRanges, sourceLineCount) : null
-  const resets = hasReset ? createSparseLineResetMap(resetEntries, sourceLineCount) : null
-  if (!hidden && !resets) return null
-  return { hidden, resets }
+  const hasSet = !!(setEntries && setEntries.length)
+  if (!hasSkip && !hasSet) return null
+  const hidden = hasSkip ? createSparseLineFlagMap(skipRanges, lineCount) : null
+  const sets = hasSet ? createSparseLineSetMap(setEntries, lineCount, hidden) : null
+  if (!hidden && !sets) return null
+  return { hidden, sets }
 }
 
-const resolveAdvancedLineNumberPlan = (lineNumberSkipValue, lineNumberResetValue, sourceLineCount, renderedLineCount) => {
+const resolveAdvancedLineNumberPlan = (lineNumberSkipValue, lineNumberSetValue, sourceLineCount, renderedLineCount) => {
   const hasSkipValue = lineNumberSkipValue !== undefined
-  const hasResetValue = lineNumberResetValue !== undefined
-  if (!hasSkipValue && !hasResetValue) return null
+  const hasSetValue = lineNumberSetValue !== undefined
+  if (!hasSkipValue && !hasSetValue) return null
   if (!Number.isSafeInteger(sourceLineCount) || sourceLineCount <= 0) return null
   if (sourceLineCount !== renderedLineCount) return null
   const skipRanges = hasSkipValue ? getLineNumberSkipRanges(lineNumberSkipValue) : null
-  const resetEntries = hasResetValue ? getLineNumberResetEntries(lineNumberResetValue) : null
-  return buildAdvancedLineNumberPlan(skipRanges, resetEntries, sourceLineCount, renderedLineCount)
+  const setEntries = hasSetValue ? getLineNumberSetEntries(lineNumberSetValue) : null
+  return buildAdvancedLineNumberPlan(skipRanges, setEntries, sourceLineCount)
 }
 
 const getPreLineOpenTag = (lineNumberPlan, lineIndex) => {
   if (!lineNumberPlan) return preLineTag
   const hidden = !!(lineNumberPlan.hidden && lineNumberPlan.hidden[lineIndex])
-  const resetNumber = lineNumberPlan.resets ? lineNumberPlan.resets[lineIndex] : undefined
-  if (!hidden && resetNumber == null) return preLineTag
+  const setNumber = lineNumberPlan.sets ? lineNumberPlan.sets[lineIndex] : undefined
+  if (!hidden && setNumber == null) return preLineTag
   let tag = '<span class="pre-line'
   if (hidden) tag += ' ' + preLineNoNumberClass
   tag += '"'
-  if (resetNumber != null) tag += ` style="counter-set:pre-line-number ${resetNumber};"`
+  if (setNumber != null) tag += ` style="counter-set:pre-line-number ${setNumber};"`
   return tag + '>'
 }
 
@@ -399,7 +398,7 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
   let startNumber = -1
   let emphasizeLines = []
   let lineNumberSkipValue
-  let lineNumberResetValue
+  let lineNumberSetValue
   let wrapEnabled = false
   let preWrapValue
   let commentMarkValue
@@ -412,7 +411,7 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
     let styleIndex = -1
     let dataPreCommentIndex = -1
     let dataPreLineNumberSkipIndex = -1
-    let dataPreLineNumberResetIndex = -1
+    let dataPreLineNumberSetIndex = -1
     let startValue
     let emphasisValue
     let styleValue
@@ -420,7 +419,7 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
     let sawStartAttr = false
     let sawEmphasisAttr = false
     let sawLineNumberSkipAttr = false
-    let sawLineNumberResetAttr = false
+    let sawLineNumberSetAttr = false
     const appendOrder = []
 
     for (const attr of token.attrs) {
@@ -469,10 +468,12 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
           lineNumberSkipValue = val
           newAttrs.push(attr)
           break
-        case 'data-pre-line-number-reset':
-          dataPreLineNumberResetIndex = newAttrs.length
-          lineNumberResetValue = val
+        case 'data-pre-line-number-set':
+          dataPreLineNumberSetIndex = newAttrs.length
+          lineNumberSetValue = val
           newAttrs.push(attr)
+          break
+        case 'data-pre-line-number-reset':
           break
         case 'em-lines':
         case 'emphasize-lines':
@@ -498,13 +499,16 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
             sawLineNumberSkipAttr = true
           }
           break
+        case 'line-number-set':
+        case 'pre-line-number-set':
+          lineNumberSetValue = val
+          if (!sawLineNumberSetAttr) {
+            appendOrder.push('line-number-set')
+            sawLineNumberSetAttr = true
+          }
+          break
         case 'line-number-reset':
         case 'pre-line-number-reset':
-          lineNumberResetValue = val
-          if (!sawLineNumberResetAttr) {
-            appendOrder.push('line-number-reset')
-            sawLineNumberResetAttr = true
-          }
           break
         case 'data-pre-wrap':
           preWrapValue = val
@@ -523,7 +527,7 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
     if (emphasisValue !== undefined && dataPreEmphasisIndex >= 0) newAttrs[dataPreEmphasisIndex][1] = emphasisValue
     if (commentMarkValue !== undefined && dataPreCommentIndex >= 0) newAttrs[dataPreCommentIndex][1] = commentMarkValue
     if (lineNumberSkipValue !== undefined && dataPreLineNumberSkipIndex >= 0) newAttrs[dataPreLineNumberSkipIndex][1] = lineNumberSkipValue
-    if (lineNumberResetValue !== undefined && dataPreLineNumberResetIndex >= 0) newAttrs[dataPreLineNumberResetIndex][1] = lineNumberResetValue
+    if (lineNumberSetValue !== undefined && dataPreLineNumberSetIndex >= 0) newAttrs[dataPreLineNumberSetIndex][1] = lineNumberSetValue
 
     for (const kind of appendOrder) {
       if (kind === 'start' && dataPreStartIndex === -1 && startValue !== undefined) {
@@ -534,8 +538,8 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
         newAttrs.push(['data-pre-comment-mark', commentMarkValue])
       } else if (kind === 'line-number-skip' && dataPreLineNumberSkipIndex === -1 && lineNumberSkipValue !== undefined) {
         newAttrs.push(['data-pre-line-number-skip', lineNumberSkipValue])
-      } else if (kind === 'line-number-reset' && dataPreLineNumberResetIndex === -1 && lineNumberResetValue !== undefined) {
-        newAttrs.push(['data-pre-line-number-reset', lineNumberResetValue])
+      } else if (kind === 'line-number-set' && dataPreLineNumberSetIndex === -1 && lineNumberSetValue !== undefined) {
+        newAttrs.push(['data-pre-line-number-set', lineNumberSetValue])
       }
     }
 
@@ -560,7 +564,7 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
     startNumber,
     emphasizeLines,
     lineNumberSkipValue,
-    lineNumberResetValue,
+    lineNumberSetValue,
     wrapEnabled,
     preWrapValue,
     commentMarkValue,
