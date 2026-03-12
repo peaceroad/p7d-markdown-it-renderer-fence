@@ -8,6 +8,7 @@ import {
 const infoReg = /^([^{\s]*)(?:\s*\{(.*)\})?$/
 const tagReg = /<\/?([A-Za-z][A-Za-z0-9-]*)(?:\s+[^>]*?)?\/?\s*>/g
 const preLineTag = '<span class="pre-line">'
+const preLineNoNumberClass = 'pre-line-no-number'
 const emphOpenTag = '<span class="pre-lines-emphasis">'
 const commentLineClass = 'pre-line-comment'
 const closeTag = '</span>'
@@ -15,6 +16,7 @@ const closeTagLen = closeTag.length
 const preWrapStyle = 'white-space: pre-wrap; overflow-wrap: anywhere;'
 const voidTags = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'])
 const nonNegativeIntReg = /^\d+$/
+const positiveIntReg = /^[1-9]\d*$/
 
 const getLineVisualLengthIgnoringTags = (line, threshold) => {
   let len = 0
@@ -105,6 +107,14 @@ const parseStartNumber = (val) => {
   return num
 }
 
+const parsePositiveLineIndex = (val) => {
+  const str = String(val ?? '').trim()
+  if (!positiveIntReg.test(str)) return null
+  const num = Number(str)
+  if (!Number.isSafeInteger(num) || num <= 0) return null
+  return num
+}
+
 const getLogicalLineCount = (text) => {
   const str = String(text ?? '')
   if (!str) return 0
@@ -120,7 +130,7 @@ const getLogicalLineCount = (text) => {
   return count
 }
 
-const getEmphasizeLines = (attrVal) => {
+const parseLineRangeList = (attrVal, parseValue) => {
   const str = String(attrVal ?? '')
   if (!str) return []
   const result = []
@@ -129,20 +139,34 @@ const getEmphasizeLines = (attrVal) => {
     if (!part) continue
     const hyphen = part.indexOf('-')
     if (hyphen === -1) {
-      const n = Number(part)
-      if (Number.isFinite(n) && n > 0) result.push([n, n])
+      const n = parseValue(part)
+      if (n != null) result.push([n, n])
       continue
     }
     const start = part.slice(0, hyphen).trim()
     const end = part.slice(hyphen + 1).trim()
-    const s = start ? Number(start) : null
-    const e = end ? Number(end) : null
+    const s = start ? parseValue(start) : null
+    const e = end ? parseValue(end) : null
     if (s == null && e == null) continue
-    if (s != null && (!Number.isFinite(s) || s <= 0)) continue
-    if (e != null && (!Number.isFinite(e) || e <= 0)) continue
+    if (start && s == null) continue
+    if (end && e == null) continue
     result.push([s, e])
   }
   return result
+}
+
+const parsePositiveLineNumber = (val) => {
+  const num = Number(val)
+  if (!Number.isFinite(num) || num <= 0) return null
+  return num
+}
+
+const getEmphasizeLines = (attrVal) => {
+  return parseLineRangeList(attrVal, parsePositiveLineNumber)
+}
+
+const getLineNumberSkipRanges = (attrVal) => {
+  return parseLineRangeList(attrVal, parsePositiveLineIndex)
 }
 
 const normalizeEmphasisRanges = (emphasizeLines, maxLine) => {
@@ -166,9 +190,87 @@ const normalizeEmphasisRanges = (emphasizeLines, maxLine) => {
   return normalized
 }
 
-const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmphasis, needEndSpan, threshold, lineEndSpanClass, br, commentLines, commentClass) => {
+const getLineNumberResetEntries = (attrVal) => {
+  const str = String(attrVal ?? '')
+  if (!str) return []
+  const result = []
+  for (const partRaw of str.split(',')) {
+    const part = partRaw.trim()
+    if (!part) continue
+    const colon = part.indexOf(':')
+    if (colon === -1) continue
+    const lineNumber = parsePositiveLineIndex(part.slice(0, colon).trim())
+    const resetNumber = parseStartNumber(part.slice(colon + 1).trim())
+    if (lineNumber == null || resetNumber == null) continue
+    result.push([lineNumber, resetNumber])
+  }
+  return result
+}
+
+const createSparseLineFlagMap = (ranges, maxLine) => {
+  const normalized = normalizeEmphasisRanges(ranges, maxLine)
+  if (!normalized.length) return null
+  const flags = []
+  for (let i = 0; i < normalized.length; i++) {
+    const range = normalized[i]
+    for (let line = range[0]; line <= range[1]; line++) flags[line - 1] = true
+  }
+  return flags
+}
+
+const createSparseLineResetMap = (entries, maxLine) => {
+  if (!entries || !entries.length || maxLine <= 0) return null
+  const resets = []
+  let hasValue = false
+  for (let i = 0; i < entries.length; i++) {
+    const line = entries[i][0]
+    const value = entries[i][1]
+    if (!Number.isSafeInteger(line) || line <= 0 || line > maxLine) continue
+    resets[line - 1] = value
+    hasValue = true
+  }
+  return hasValue ? resets : null
+}
+
+const buildAdvancedLineNumberPlan = (skipRanges, resetEntries, sourceLineCount, renderedLineCount) => {
+  const hasSkip = !!(skipRanges && skipRanges.length)
+  const hasReset = !!(resetEntries && resetEntries.length)
+  if (!hasSkip && !hasReset) return null
+  if (!Number.isSafeInteger(sourceLineCount) || sourceLineCount <= 0) return null
+  if (sourceLineCount !== renderedLineCount) return null
+  const hidden = hasSkip ? createSparseLineFlagMap(skipRanges, sourceLineCount) : null
+  const resets = hasReset ? createSparseLineResetMap(resetEntries, sourceLineCount) : null
+  if (!hidden && !resets) return null
+  return { hidden, resets }
+}
+
+const resolveAdvancedLineNumberPlan = (lineNumberSkipValue, lineNumberResetValue, sourceLineCount, renderedLineCount) => {
+  const hasSkipValue = lineNumberSkipValue !== undefined
+  const hasResetValue = lineNumberResetValue !== undefined
+  if (!hasSkipValue && !hasResetValue) return null
+  if (!Number.isSafeInteger(sourceLineCount) || sourceLineCount <= 0) return null
+  if (sourceLineCount !== renderedLineCount) return null
+  const skipRanges = hasSkipValue ? getLineNumberSkipRanges(lineNumberSkipValue) : null
+  const resetEntries = hasResetValue ? getLineNumberResetEntries(lineNumberResetValue) : null
+  return buildAdvancedLineNumberPlan(skipRanges, resetEntries, sourceLineCount, renderedLineCount)
+}
+
+const getPreLineOpenTag = (lineNumberPlan, lineIndex) => {
+  if (!lineNumberPlan) return preLineTag
+  const hidden = !!(lineNumberPlan.hidden && lineNumberPlan.hidden[lineIndex])
+  const resetNumber = lineNumberPlan.resets ? lineNumberPlan.resets[lineIndex] : undefined
+  if (!hidden && resetNumber == null) return preLineTag
+  let tag = '<span class="pre-line'
+  if (hidden) tag += ' ' + preLineNoNumberClass
+  tag += '"'
+  if (resetNumber != null) tag += ` style="counter-set:pre-line-number ${resetNumber};"`
+  return tag + '>'
+}
+
+const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmphasis, needEndSpan, threshold, lineEndSpanClass, br, commentLines, commentClass, lineNumberPlan) => {
   const lines = content.split(br)
   const max = lines.length
+  const hasDynamicLineNumberPlan = !!lineNumberPlan
   let emIdx = 0
   let emStart = -1
   let emEnd = -1
@@ -239,7 +341,7 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
     }
 
     if (needLineNumber && notLastLine) {
-      line = preLineTag + line + closeTag
+      line = (hasDynamicLineNumberPlan ? getPreLineOpenTag(lineNumberPlan, n) : preLineTag) + line + closeTag
     }
 
     if (needEmphasis && emIdx < emphasizeLines.length && emStart === n + 1) {
@@ -296,6 +398,8 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
 
   let startNumber = -1
   let emphasizeLines = []
+  let lineNumberSkipValue
+  let lineNumberResetValue
   let wrapEnabled = false
   let preWrapValue
   let commentMarkValue
@@ -307,12 +411,16 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
     let dataPreEmphasisIndex = -1
     let styleIndex = -1
     let dataPreCommentIndex = -1
+    let dataPreLineNumberSkipIndex = -1
+    let dataPreLineNumberResetIndex = -1
     let startValue
     let emphasisValue
     let styleValue
     let sawCommentMark = false
     let sawStartAttr = false
     let sawEmphasisAttr = false
+    let sawLineNumberSkipAttr = false
+    let sawLineNumberResetAttr = false
     const appendOrder = []
 
     for (const attr of token.attrs) {
@@ -337,6 +445,7 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
           dataPreStartIndex = newAttrs.length
           newAttrs.push(attr)
           break
+        case 'line-number-start':
         case 'start':
         case 'pre-start':
           startNumber = parseStartNumber(val) ?? -1
@@ -355,6 +464,16 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
           commentMarkValue = val
           newAttrs.push(attr)
           break
+        case 'data-pre-line-number-skip':
+          dataPreLineNumberSkipIndex = newAttrs.length
+          lineNumberSkipValue = val
+          newAttrs.push(attr)
+          break
+        case 'data-pre-line-number-reset':
+          dataPreLineNumberResetIndex = newAttrs.length
+          lineNumberResetValue = val
+          newAttrs.push(attr)
+          break
         case 'em-lines':
         case 'emphasize-lines':
           if (opt.setEmphasizeLines) emphasizeLines = getEmphasizeLines(val)
@@ -369,6 +488,22 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
           if (!sawCommentMark) {
             appendOrder.push('comment')
             sawCommentMark = true
+          }
+          break
+        case 'line-number-skip':
+        case 'pre-line-number-skip':
+          lineNumberSkipValue = val
+          if (!sawLineNumberSkipAttr) {
+            appendOrder.push('line-number-skip')
+            sawLineNumberSkipAttr = true
+          }
+          break
+        case 'line-number-reset':
+        case 'pre-line-number-reset':
+          lineNumberResetValue = val
+          if (!sawLineNumberResetAttr) {
+            appendOrder.push('line-number-reset')
+            sawLineNumberResetAttr = true
           }
           break
         case 'data-pre-wrap':
@@ -387,6 +522,8 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
     if (startValue !== undefined && dataPreStartIndex >= 0) newAttrs[dataPreStartIndex][1] = startValue
     if (emphasisValue !== undefined && dataPreEmphasisIndex >= 0) newAttrs[dataPreEmphasisIndex][1] = emphasisValue
     if (commentMarkValue !== undefined && dataPreCommentIndex >= 0) newAttrs[dataPreCommentIndex][1] = commentMarkValue
+    if (lineNumberSkipValue !== undefined && dataPreLineNumberSkipIndex >= 0) newAttrs[dataPreLineNumberSkipIndex][1] = lineNumberSkipValue
+    if (lineNumberResetValue !== undefined && dataPreLineNumberResetIndex >= 0) newAttrs[dataPreLineNumberResetIndex][1] = lineNumberResetValue
 
     for (const kind of appendOrder) {
       if (kind === 'start' && dataPreStartIndex === -1 && startValue !== undefined) {
@@ -395,6 +532,10 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
         newAttrs.push(['data-pre-emphasis', emphasisValue])
       } else if (kind === 'comment' && dataPreCommentIndex === -1 && commentMarkValue !== undefined) {
         newAttrs.push(['data-pre-comment-mark', commentMarkValue])
+      } else if (kind === 'line-number-skip' && dataPreLineNumberSkipIndex === -1 && lineNumberSkipValue !== undefined) {
+        newAttrs.push(['data-pre-line-number-skip', lineNumberSkipValue])
+      } else if (kind === 'line-number-reset' && dataPreLineNumberResetIndex === -1 && lineNumberResetValue !== undefined) {
+        newAttrs.push(['data-pre-line-number-reset', lineNumberResetValue])
       }
     }
 
@@ -418,6 +559,8 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
     lang,
     startNumber,
     emphasizeLines,
+    lineNumberSkipValue,
+    lineNumberResetValue,
     wrapEnabled,
     preWrapValue,
     commentMarkValue,
@@ -442,5 +585,6 @@ export {
   orderTokenAttrs,
   preWrapStyle,
   prepareFenceRenderContext,
+  resolveAdvancedLineNumberPlan,
   splitFenceBlockToLines,
 }

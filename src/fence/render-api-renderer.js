@@ -6,9 +6,11 @@ import {
   commentLineClass,
   emitFenceDecision,
   finalizeFenceTimings,
+  getLogicalLineCount,
   getNowMs,
   orderTokenAttrs,
   preWrapStyle,
+  resolveAdvancedLineNumberPlan,
   splitFenceBlockToLines,
 } from './render-shared.js'
 import {
@@ -43,18 +45,23 @@ const buildApiPreAttrs = (preWrapValue, wrapEnabled, opt) => {
   return preAttrs
 }
 
-const renderFenceApiOrPlain = (token, lang, md, opt, slf, env, startNumber, emphasizeLines, wrapEnabled, preWrapValue, commentMarkValue, includePayload, timings) => {
+const renderFenceApiOrPlain = (token, lang, md, opt, slf, env, startNumber, emphasizeLines, lineNumberSkipValue, lineNumberResetValue, wrapEnabled, preWrapValue, commentMarkValue, includePayload, timings) => {
   const isSamp = opt._sampReg.test(lang)
   const tag = isSamp ? 'samp' : 'code'
   let content = md.utils.escapeHtml(token.content)
   const lineStrategy = opt.customHighlight.lineFeatureStrategy
   const needLineNumber = lineStrategy === 'hybrid' && opt.setLineNumber && startNumber >= 0
   const needEndSpan = lineStrategy === 'hybrid' && opt.lineEndSpanThreshold > 0
+  let lineNumberPlan = null
+  if (needLineNumber && (lineNumberSkipValue !== undefined || lineNumberResetValue !== undefined)) {
+    const logicalLineCount = getLogicalLineCount(token.content)
+    lineNumberPlan = resolveAdvancedLineNumberPlan(lineNumberSkipValue, lineNumberResetValue, logicalLineCount, logicalLineCount)
+  }
   if (needLineNumber || needEndSpan) {
     const splitStartedAt = timings ? getNowMs() : 0
     const nlIndex = content.indexOf('\n')
     const br = nlIndex > 0 && content[nlIndex - 1] === '\r' ? '\r\n' : '\n'
-    content = splitFenceBlockToLines(content, [], needLineNumber, false, needEndSpan, opt.lineEndSpanThreshold, opt.lineEndSpanClass, br, undefined, commentLineClass)
+    content = splitFenceBlockToLines(content, [], needLineNumber, false, needEndSpan, opt.lineEndSpanThreshold, opt.lineEndSpanClass, br, undefined, commentLineClass, lineNumberPlan)
     if (timings) addTimingMs(timings, 'lineSplitMs', getNowMs() - splitStartedAt)
   }
 
@@ -93,6 +100,8 @@ const getFenceHtml = (context, md, opt, slf, env) => {
   const fenceStartedAt = context.fenceStartedAt
   const startNumber = context.startNumber
   const emphasizeLines = context.emphasizeLines
+  const lineNumberSkipValue = context.lineNumberSkipValue
+  const lineNumberResetValue = context.lineNumberResetValue
   const wrapEnabled = context.wrapEnabled
   const preWrapValue = context.preWrapValue
   const commentMarkValue = context.commentMarkValue
@@ -103,11 +112,11 @@ const getFenceHtml = (context, md, opt, slf, env) => {
     fallbackUsed: false,
     lineFeatureStrategy: opt.customHighlight.lineFeatureStrategy,
     disabledFeatures: opt.customHighlight.lineFeatureStrategy === 'disable'
-      ? ['setLineNumber', 'lineEndSpanThreshold']
+      ? ['setLineNumber', 'line-number-skip', 'line-number-reset', 'lineEndSpanThreshold']
       : [],
   }
   try {
-    const html = renderFenceApiOrPlain(token, lang, md, opt, slf, env, startNumber, emphasizeLines, wrapEnabled, preWrapValue, commentMarkValue, true, timings)
+    const html = renderFenceApiOrPlain(token, lang, md, opt, slf, env, startNumber, emphasizeLines, lineNumberSkipValue, lineNumberResetValue, wrapEnabled, preWrapValue, commentMarkValue, true, timings)
     if (timingEnabled) apiDecisionBase.timings = finalizeFenceTimings(timings, fenceStartedAt)
     emitFenceDecision(opt, apiDecisionBase)
     return html
@@ -121,7 +130,7 @@ const getFenceHtml = (context, md, opt, slf, env) => {
         reason: 'provider-error',
         lineFeatureStrategy: opt.customHighlight.lineFeatureStrategy,
       }
-      const html = renderFenceApiOrPlain(token, lang, md, opt, slf, env, startNumber, emphasizeLines, wrapEnabled, preWrapValue, commentMarkValue, false, timings)
+      const html = renderFenceApiOrPlain(token, lang, md, opt, slf, env, startNumber, emphasizeLines, lineNumberSkipValue, lineNumberResetValue, wrapEnabled, preWrapValue, commentMarkValue, false, timings)
       if (timingEnabled) fallbackDecision.timings = finalizeFenceTimings(timings, fenceStartedAt)
       emitFenceDecision(opt, fallbackDecision)
       return html

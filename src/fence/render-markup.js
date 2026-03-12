@@ -13,6 +13,7 @@ import {
   normalizeEmphasisRanges,
   orderTokenAttrs,
   preWrapStyle,
+  resolveAdvancedLineNumberPlan,
   splitFenceBlockToLines,
 } from './render-shared.js'
 import {
@@ -27,6 +28,8 @@ const renderFenceMarkup = (context, md, opt, slf) => {
   const fenceStartedAt = context.fenceStartedAt
   const startNumber = context.startNumber
   const emphasizeLines = context.emphasizeLines
+  const lineNumberSkipValue = context.lineNumberSkipValue
+  const lineNumberResetValue = context.lineNumberResetValue
   const wrapEnabled = context.wrapEnabled
   const preWrapValue = context.preWrapValue
   const commentMarkValue = context.commentMarkValue
@@ -103,16 +106,28 @@ const renderFenceMarkup = (context, md, opt, slf) => {
   const preAttrsText = preAttrs.length ? slf.renderAttrs({ attrs: preAttrs }) : ''
 
   const needLineNumber = opt.setLineNumber && startNumber >= 0
-  const normalizedEmphasis = (opt.setEmphasizeLines && emphasizeLines.length > 0)
-    ? normalizeEmphasisRanges(emphasizeLines, getLogicalLineCount(content))
-    : []
+  let sourceLogicalLineCount = -1
+  let highlightedLogicalLineCount = -1
+  const ensureLogicalLineCounts = () => {
+    if (sourceLogicalLineCount === -1) sourceLogicalLineCount = getLogicalLineCount(sourceContent)
+    if (highlightedLogicalLineCount === -1) highlightedLogicalLineCount = getLogicalLineCount(content)
+  }
+  let normalizedEmphasis = []
+  if (opt.setEmphasizeLines && emphasizeLines.length > 0) {
+    ensureLogicalLineCounts()
+    normalizedEmphasis = normalizeEmphasisRanges(emphasizeLines, highlightedLogicalLineCount)
+  }
+  let lineNumberPlan = null
+  if (needLineNumber && (lineNumberSkipValue !== undefined || lineNumberResetValue !== undefined)) {
+    ensureLogicalLineCounts()
+    lineNumberPlan = resolveAdvancedLineNumberPlan(lineNumberSkipValue, lineNumberResetValue, sourceLogicalLineCount, highlightedLogicalLineCount)
+  }
   const needEmphasis = normalizedEmphasis.length > 0
   const needEndSpan = opt.lineEndSpanThreshold > 0
   const useHighlightPre = opt.useHighlightPre && hasHighlightPre
 
   if (!useHighlightPre && commentMarkValue && sourceContent.indexOf(commentMarkValue) !== -1) {
-    const sourceLogicalLineCount = getLogicalLineCount(sourceContent)
-    const highlightedLogicalLineCount = getLogicalLineCount(content)
+    ensureLogicalLineCounts()
     if (highlightedLogicalLineCount === sourceLogicalLineCount) {
       const rawLines = sourceContent.split('\n')
       for (let i = 0; i < rawLines.length; i++) {
@@ -140,6 +155,7 @@ const renderFenceMarkup = (context, md, opt, slf) => {
       br,
       commentLines,
       commentLineClass,
+      lineNumberPlan,
     )
     if (timingEnabled) addTimingMs(timings, 'lineSplitMs', getNowMs() - splitStartedAt)
   }
@@ -149,7 +165,7 @@ const renderFenceMarkup = (context, md, opt, slf) => {
     renderer: 'markup',
     useHighlightPre,
     hasHighlightPre,
-    disabledFeatures: useHighlightPre ? ['setLineNumber', 'setEmphasizeLines', 'lineEndSpanThreshold', 'comment-mark', 'samp'] : [],
+    disabledFeatures: useHighlightPre ? ['setLineNumber', 'line-number-skip', 'line-number-reset', 'setEmphasizeLines', 'lineEndSpanThreshold', 'comment-mark', 'samp'] : [],
   }
   if (timingEnabled) decision.timings = finalizeFenceTimings(timings, fenceStartedAt)
   emitFenceDecision(opt, decision)

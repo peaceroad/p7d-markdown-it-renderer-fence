@@ -354,6 +354,7 @@ const testData = {
   linesEmphasis: __dirname + path.sep +  'example-lines-emphasis.txt',
   lineEndSpan: __dirname + path.sep +  'example-line-end-span.txt',
   startInvalid: __dirname + path.sep + 'example-start-invalid.txt',
+  lineNumberAdvanced: __dirname + path.sep + 'example-line-number-advanced.txt',
   commentLineMismatch: __dirname + path.sep + 'example-comment-line-mismatch.txt',
   voidTags: __dirname + path.sep + 'example-void-tags.txt',
   markupPreAttrs: __dirname + path.sep + 'example-markup-pre-attrs.txt',
@@ -1919,6 +1920,110 @@ const runMarkdownItFenceLfNormalizationTest = () => {
   }
 }
 
+const runAdvancedLineNumberMismatchFallbackTest = () => {
+  console.log('===========================================================')
+  console.log('advanced-line-number-mismatch-fallback')
+  try {
+    const mdMismatch = mdit({
+      html: true,
+      langPrefix: 'language-',
+      highlight: (str, lang) => {
+        if (lang === 'mock') {
+          return str.split('\n').map((line) => `<span>${line}</span>\n<span class="extra">X</span>`).join('\n')
+        }
+        return md.utils.escapeHtml(str)
+      },
+    }).use(mditRendererFence, opt).use(mditAttrs)
+
+    const html = mdMismatch.render('```mock {start="10" line-number-skip="2" line-number-reset="2:30"}\na\nb\n```\n')
+    assert.ok(html.includes('data-pre-line-number-skip="2"'))
+    assert.ok(html.includes('data-pre-line-number-reset="2:30"'))
+    assert.ok(!html.includes('pre-line-no-number'))
+    assert.ok(!html.includes('counter-set:pre-line-number 30;'))
+    console.log('Test: advanced-line-number-mismatch-fallback >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
+const runAdvancedLineNumberHighlightPreDisabledTest = () => {
+  console.log('===========================================================')
+  console.log('advanced-line-number-highlight-pre-disabled')
+  try {
+    const mdHighlightPre = mdit({
+      html: true,
+      langPrefix: 'language-',
+      highlight: (str, lang) => {
+        if (lang === 'mock') return `<pre class="from-highlight"><code><span>${str.replace(/\n/g, '</span>\n<span>')}</span></code></pre>`
+        return md.utils.escapeHtml(str)
+      },
+    }).use(mditRendererFence, { useHighlightPre: true }).use(mditAttrs)
+
+    const html = mdHighlightPre.render('```mock {start="5" line-number-skip="2" line-number-reset="2:30"}\na\nb\n```\n')
+    assert.ok(html.includes('data-pre-line-number-skip="2"'))
+    assert.ok(html.includes('data-pre-line-number-reset="2:30"'))
+    assert.ok(!html.includes('pre-line-no-number'))
+    assert.ok(!html.includes('<span class="pre-line">'))
+    assert.ok(!html.includes('counter-set:pre-line-number 30;'))
+    console.log('Test: advanced-line-number-highlight-pre-disabled >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
+const runApiAdvancedLineNumberTest = () => {
+  console.log('===========================================================')
+  console.log('api-advanced-line-number')
+  try {
+    const env = {}
+    const markdown = '```js {start="2" line-number-skip="2" line-number-reset="3:10"}\na\nb\nc\n```\n'
+    const html = mdApiCustom.render(markdown, env)
+    const expected = '<pre data-pre-highlight="hl-1"><code class="language-js" data-pre-start="2" data-pre-line-number-skip="2" data-pre-line-number-reset="3:10" style="counter-set:pre-line-number 2;"><span class="pre-line">a</span>\n<span class="pre-line pre-line-no-number">b</span>\n<span class="pre-line" style="counter-set:pre-line-number 10;">c</span>\n</code></pre>\n'
+    assert.strictEqual(html, expected)
+    assert.ok(env.rendererFenceCustomHighlights)
+    assert.ok(env.rendererFenceCustomHighlights['hl-1'])
+    console.log('Test: api-advanced-line-number >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
+const runAdvancedLineNumberTaggedMarkupTest = () => {
+  console.log('===========================================================')
+  console.log('advanced-line-number-tagged-markup')
+  try {
+    const mdTagged = mdit({
+      html: true,
+      langPrefix: 'language-',
+      highlight: (str, lang) => {
+        if (lang !== 'mock') return md.utils.escapeHtml(str)
+        const lines = str.split('\n')
+        if (lines.length && lines[lines.length - 1] === '') lines.pop()
+        return lines.map((line) => `<span class="tok">${line}</span>`).join('\n') + '\n'
+      },
+    }).use(mditRendererFence, opt).use(mditAttrs)
+
+    const markdown = '```mock {start="2" line-number-skip="2" line-number-reset="3:10"}\na\nb\nc\n```\n'
+    const expected = '<pre><code class="language-mock" data-pre-start="2" data-pre-line-number-skip="2" data-pre-line-number-reset="3:10" style="counter-set:pre-line-number 2;"><span class="pre-line"><span class="tok">a</span></span>\n<span class="pre-line pre-line-no-number"><span class="tok">b</span></span>\n<span class="pre-line" style="counter-set:pre-line-number 10;"><span class="tok">c</span></span>\n</code></pre>\n'
+    assert.strictEqual(mdTagged.render(markdown), expected)
+    console.log('Test: advanced-line-number-tagged-markup >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
 let pass = true
 pass = runTest(md, testData.noOption, pass)
 pass = runTest(md, testData.sampComment, pass)
@@ -1926,6 +2031,7 @@ pass = runTest(mdHighlightJs, testData.highlightjs, pass)
 pass = runTest(mdLinesEmphasis, testData.linesEmphasis, pass)
 pass = runTest(mdLIneEndSpan, testData.lineEndSpan, pass)
 pass = runTest(md, testData.startInvalid, pass)
+pass = runTest(md, testData.lineNumberAdvanced, pass)
 pass = runTest(mdCommentLineMismatch, testData.commentLineMismatch, pass)
 pass = runTest(mdVoidTags, testData.voidTags, pass)
 pass = runTest(mdMarkupPreAttrs, testData.markupPreAttrs, pass)
@@ -2009,6 +2115,10 @@ pass = runPayloadScriptHelperTest() && pass
 pass = runPayloadSchemaVersionContractTest() && pass
 pass = runEnvReuseResetTest() && pass
 pass = runMarkdownItFenceLfNormalizationTest() && pass
+pass = runAdvancedLineNumberMismatchFallbackTest() && pass
+pass = runAdvancedLineNumberHighlightPreDisabledTest() && pass
+pass = runApiAdvancedLineNumberTest() && pass
+pass = runAdvancedLineNumberTaggedMarkupTest() && pass
 pass = runRuntimeApiReapplyTest() && pass
 pass = runRuntimeInlineScriptTest() && pass
 pass = runRuntimeIncrementalSkipTest() && pass
