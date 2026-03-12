@@ -3,6 +3,7 @@ import {
 } from '../custom-highlight/payload-utils.js'
 import {
   applyLineEndAlias,
+  createCommonFenceOptionDefaults,
   finalizeCommonFenceOption,
   prepareFenceRenderContext,
 } from './render-shared.js'
@@ -38,18 +39,7 @@ const shouldRuntimeFallback = (reason, opt = {}) => {
 
 const mditRendererFenceCustomHighlight = (md, option) => {
   const opt = {
-    attrsOrder: ['class', 'id', 'data-*', 'style'],
-    setHighlight: true,
-    setLineNumber: true,
-    setEmphasizeLines: true,
-    lineEndSpanThreshold: 0,
-    lineEndSpanClass: 'pre-lineend-spacer',
-    setPreWrapStyle: true,
-    useHighlightPre: false,
-    onFenceDecision: null,
-    onFenceDecisionTiming: false,
-    sampLang: 'shell,console',
-    langPrefix: md.options.langPrefix || 'language-',
+    ...createCommonFenceOptionDefaults(md),
     customHighlight: null,
   }
   if (option) {

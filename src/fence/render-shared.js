@@ -67,6 +67,23 @@ const applyLineEndAlias = (opt, sourceOption) => {
   }
 }
 
+const createCommonFenceOptionDefaults = (md) => {
+  return {
+    attrsOrder: ['class', 'id', 'data-*', 'style'],
+    setHighlight: true,
+    setLineNumber: true,
+    setEmphasizeLines: true,
+    lineEndSpanThreshold: 0,
+    lineEndSpanClass: 'pre-lineend-spacer',
+    setPreWrapStyle: true,
+    useHighlightPre: false,
+    onFenceDecision: null,
+    onFenceDecisionTiming: false,
+    sampLang: 'shell,console',
+    langPrefix: md.options.langPrefix || 'language-',
+  }
+}
+
 const finalizeCommonFenceOption = (opt) => {
   opt._sampReg = new RegExp('^(?:samp|' + opt.sampLang.split(',').join('|') + ')$')
   opt._attrOrderIndex = createAttrOrderIndexGetter(opt.attrsOrder || [])
@@ -414,6 +431,7 @@ export {
   addTimingMs,
   applyLineEndAlias,
   commentLineClass,
+  createCommonFenceOptionDefaults,
   emitFenceDecision,
   finalizeCommonFenceOption,
   finalizeFenceTimings,
