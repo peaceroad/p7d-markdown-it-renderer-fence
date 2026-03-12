@@ -114,7 +114,8 @@ Note:
 ### Main Features
 
 - `samp` rendering for `samp`, `shell`, `console` languages.
-- line number wrapping via `start` / `data-pre-start`.
+- line number wrapping via `start` (`line-number-start` long form) / `data-pre-start`.
+- line number skip/reset controls via `line-number-skip` / `line-number-reset`.
 - emphasized lines via `em-lines` / `emphasize-lines`.
 - optional line-end spacer via `lineEndSpanThreshold`.
 - optional pre-wrap support via `wrap` / `pre-wrap`.
@@ -150,6 +151,30 @@ console.log(a)
 <pre><code class="language-js" data-pre-start="1" style="counter-set:pre-line-number 1;">
 <span class="pre-line">const a = 1</span>
 <span class="pre-line">console.log(a)</span>
+</code></pre>
+```
+
+Advanced line number control:
+
+~~~md
+```txt {start="25" line-number-skip="5" line-number-reset="6:136"}
+line1
+line2
+line3
+line4
+...
+line6
+```
+~~~
+
+```html
+<pre><code class="language-txt" data-pre-start="25" data-pre-line-number-skip="5" data-pre-line-number-reset="6:136" style="counter-set:pre-line-number 25;">
+<span class="pre-line">line1</span>
+<span class="pre-line">line2</span>
+<span class="pre-line">line3</span>
+<span class="pre-line">line4</span>
+<span class="pre-line pre-line-no-number">...</span>
+<span class="pre-line" style="counter-set:pre-line-number 136;">line6</span>
 </code></pre>
 ```
 
@@ -209,16 +234,38 @@ echo 1
 - `useHighlightPre: true` keeps highlighter-provided `<pre><code>` when present.
 - In that passthrough path, line-splitting features are intentionally disabled:
   - line numbers
+  - `line-number-skip`
+  - `line-number-reset`
   - `em-lines`
   - line-end spacer
   - `comment-mark`
   - `samp` conversion
 
+Official line-number CSS contract:
+
+```css
+.pre-line {
+  counter-increment: pre-line-number;
+}
+
+.pre-line::before {
+  content: counter(pre-line-number);
+}
+
+.pre-line.pre-line-no-number {
+  counter-increment: none;
+}
+
+.pre-line.pre-line-no-number::before {
+  content: "";
+}
+```
+
 ### Markup Options
 
 - `attrsOrder` (default: `['class', 'id', 'data-*', 'style']`): output attribute order (`data-*` wildcard supported).
 - `setHighlight` (default: `true`): call `md.options.highlight` when available.
-- `setLineNumber` (default: `true`): enable line wrapper spans when `start` is valid.
+- `setLineNumber` (default: `true`): enable line wrapper spans when `start` / `line-number-start` is valid.
 - `setEmphasizeLines` (default: `true`): enable `em-lines` / `emphasize-lines`.
 - `lineEndSpanThreshold` (default: `0`): append line-end spacer span when visual width threshold is met.
 - `setLineEndSpan`: alias of `lineEndSpanThreshold`.
@@ -235,6 +282,13 @@ echo 1
 - supports single values (`2`) and ranges (`4-6`)
 - supports open-ended forms (`3-`, `-2`)
 - reversed ranges are normalized (`5-3` behaves as `3-5`)
+
+Line-number attr syntax note:
+
+- `line-number-start` is the long form of `start`; rendered output still uses `data-pre-start`.
+- `line-number-skip` supports single values (`2`), ranges (`4-6`), and open-ended forms (`3-`).
+- `line-number-reset` uses `line:number` pairs (for example `6:136,14:220`).
+- `line-number-skip` / `line-number-reset` are applied only when source and highlighted logical line counts match; otherwise renderer falls back to plain sequential numbering.
 
 Migration note (`0.5.0`):
 
