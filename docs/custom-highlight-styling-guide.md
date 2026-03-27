@@ -151,6 +151,7 @@ Palette basis:
 - highlight.js `github.css`
 - highlight.js `github-dark.css`
 
-License reference:
+License / notice reference:
 
 - `node_modules/highlight.js/LICENSE` (BSD-3-Clause)
+- `THIRD_PARTY_NOTICES.md` (repository notice for the derived docs preset)

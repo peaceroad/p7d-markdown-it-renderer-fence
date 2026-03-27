@@ -616,8 +616,6 @@ Then include that bridge in generated HTML:
 - performance baseline: `npm run test:performance`
 - runtime apply benchmark: `npm run test:performance:runtime`
 
-## License and Notices
+## License
 
 - Project license: MIT (`LICENSE`)
-- Third-party notices: `THIRD_PARTY_NOTICES.md`
-- `docs/default-highlight-theme.css` contains mappings derived from highlight.js theme families (BSD-3-Clause; see notices).

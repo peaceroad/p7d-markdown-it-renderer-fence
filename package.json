@@ -13,7 +13,6 @@
     "index.js",
     "src",
     "LICENSE",
-    "THIRD_PARTY_NOTICES.md",
     "README.md"
   ],
   "type": "module",
