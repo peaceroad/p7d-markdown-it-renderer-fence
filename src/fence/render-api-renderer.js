@@ -11,7 +11,9 @@ import {
   orderTokenAttrs,
   preWrapStyle,
   resolveAdvancedLineNumberPlan,
+  resolveLineNotesPlan,
   splitFenceBlockToLines,
+  wrapFencePreWithLineNotes,
 } from './render-shared.js'
 import {
   createApiPayloadForFence,
@@ -25,6 +27,8 @@ import {
 import {
   renderFenceMarkup,
 } from './render-markup.js'
+
+const apiDisableLineFeatureList = Object.freeze(['setLineNumber', 'line-number-skip', 'line-number-set', 'lineEndSpanThreshold', 'line-notes'])
 
 let fallbackCustomHighlightSeq = 0
 
@@ -45,23 +49,30 @@ const buildApiPreAttrs = (preWrapValue, wrapEnabled, opt) => {
   return preAttrs
 }
 
-const renderFenceApiOrPlain = (token, lang, md, opt, slf, env, startNumber, emphasizeLines, lineNumberSkipValue, lineNumberSetValue, wrapEnabled, preWrapValue, commentMarkValue, includePayload, timings) => {
+const renderFenceApiOrPlain = (token, lang, md, opt, slf, env, startNumber, emphasizeLines, lineNumberSkipValue, lineNumberSetValue, wrapEnabled, preWrapValue, commentMarkValue, lineNotes, lineNoteIdPrefix, includePayload, timings) => {
   const isSamp = opt._sampReg.test(lang)
   const tag = isSamp ? 'samp' : 'code'
   let content = md.utils.escapeHtml(token.content)
   const lineStrategy = opt.customHighlight.lineFeatureStrategy
   const needLineNumber = lineStrategy === 'hybrid' && opt.setLineNumber && startNumber >= 0
   const needEndSpan = lineStrategy === 'hybrid' && opt.lineEndSpanThreshold > 0
+  const needAdvancedLineNumberPlan = needLineNumber && (lineNumberSkipValue !== undefined || lineNumberSetValue !== undefined)
+  const needLineNotes = lineStrategy !== 'disable' && !!(lineNotes && lineNotes.length)
+  const logicalLineCount = (needAdvancedLineNumberPlan || needLineNotes)
+    ? getLogicalLineCount(token.content)
+    : -1
   let lineNumberPlan = null
-  if (needLineNumber && (lineNumberSkipValue !== undefined || lineNumberSetValue !== undefined)) {
-    const logicalLineCount = getLogicalLineCount(token.content)
+  if (needAdvancedLineNumberPlan) {
     lineNumberPlan = resolveAdvancedLineNumberPlan(lineNumberSkipValue, lineNumberSetValue, logicalLineCount, logicalLineCount)
   }
-  if (needLineNumber || needEndSpan) {
+  const lineNotePlan = needLineNotes
+    ? resolveLineNotesPlan(lineNotes, logicalLineCount, logicalLineCount, lineNoteIdPrefix)
+    : null
+  if (needLineNumber || needEndSpan || lineNotePlan) {
     const splitStartedAt = timings ? getNowMs() : 0
     const nlIndex = content.indexOf('\n')
     const br = nlIndex > 0 && content[nlIndex - 1] === '\r' ? '\r\n' : '\n'
-    content = splitFenceBlockToLines(content, [], needLineNumber, false, needEndSpan, opt.lineEndSpanThreshold, opt.lineEndSpanClass, br, undefined, commentLineClass, lineNumberPlan)
+    content = splitFenceBlockToLines(content, [], needLineNumber, false, needEndSpan, opt.lineEndSpanThreshold, opt.lineEndSpanClass, br, undefined, commentLineClass, lineNumberPlan, lineNotePlan)
     if (timings) addTimingMs(timings, 'lineSplitMs', getNowMs() - splitStartedAt)
   }
 
@@ -88,7 +99,8 @@ const renderFenceApiOrPlain = (token, lang, md, opt, slf, env, startNumber, emph
 
   if (preAttrs.length) orderTokenAttrs({ attrs: preAttrs }, opt)
   const preAttrsText = preAttrs.length ? slf.renderAttrs({ attrs: preAttrs }) : ''
-  const html = `<pre${preAttrsText}><${tag}${slf.renderAttrs(token)}>${content}</${tag}></pre>\n`
+  const preHtml = `<pre${preAttrsText}><${tag}${slf.renderAttrs(token)}>${content}</${tag}></pre>`
+  const html = wrapFencePreWithLineNotes(preHtml, lineNotePlan)
   return inlinePayloadScript ? html + inlinePayloadScript : html
 }
 
@@ -105,6 +117,8 @@ const getFenceHtml = (context, md, opt, slf, env) => {
   const wrapEnabled = context.wrapEnabled
   const preWrapValue = context.preWrapValue
   const commentMarkValue = context.commentMarkValue
+  const lineNotes = context.lineNotes
+  const lineNoteIdPrefix = context.lineNoteIdPrefix
 
   const apiDecisionBase = {
     renderer: 'api',
@@ -112,11 +126,11 @@ const getFenceHtml = (context, md, opt, slf, env) => {
     fallbackUsed: false,
     lineFeatureStrategy: opt.customHighlight.lineFeatureStrategy,
     disabledFeatures: opt.customHighlight.lineFeatureStrategy === 'disable'
-      ? ['setLineNumber', 'line-number-skip', 'line-number-set', 'lineEndSpanThreshold']
+      ? apiDisableLineFeatureList
       : [],
   }
   try {
-    const html = renderFenceApiOrPlain(token, lang, md, opt, slf, env, startNumber, emphasizeLines, lineNumberSkipValue, lineNumberSetValue, wrapEnabled, preWrapValue, commentMarkValue, true, timings)
+    const html = renderFenceApiOrPlain(token, lang, md, opt, slf, env, startNumber, emphasizeLines, lineNumberSkipValue, lineNumberSetValue, wrapEnabled, preWrapValue, commentMarkValue, lineNotes, lineNoteIdPrefix, true, timings)
     if (timingEnabled) apiDecisionBase.timings = finalizeFenceTimings(timings, fenceStartedAt)
     emitFenceDecision(opt, apiDecisionBase)
     return html
@@ -130,7 +144,7 @@ const getFenceHtml = (context, md, opt, slf, env) => {
         reason: 'provider-error',
         lineFeatureStrategy: opt.customHighlight.lineFeatureStrategy,
       }
-      const html = renderFenceApiOrPlain(token, lang, md, opt, slf, env, startNumber, emphasizeLines, lineNumberSkipValue, lineNumberSetValue, wrapEnabled, preWrapValue, commentMarkValue, false, timings)
+      const html = renderFenceApiOrPlain(token, lang, md, opt, slf, env, startNumber, emphasizeLines, lineNumberSkipValue, lineNumberSetValue, wrapEnabled, preWrapValue, commentMarkValue, lineNotes, lineNoteIdPrefix, false, timings)
       if (timingEnabled) fallbackDecision.timings = finalizeFenceTimings(timings, fenceStartedAt)
       emitFenceDecision(opt, fallbackDecision)
       return html

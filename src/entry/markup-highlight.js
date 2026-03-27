@@ -5,6 +5,9 @@ import {
   prepareFenceRenderContext,
 } from '../fence/render-shared.js'
 import {
+  installLineNotesCoreRule,
+} from '../fence/line-notes.js'
+import {
   renderFenceMarkup,
 } from '../fence/render-markup.js'
 
@@ -17,6 +20,7 @@ const mditRendererFenceMarkup = (md, option) => {
   }
 
   finalizeCommonFenceOption(opt)
+  installLineNotesCoreRule(md)
 
   md.renderer.rules.fence = (tokens, idx, options, env, slf) => {
     const context = prepareFenceRenderContext(tokens, idx, opt)

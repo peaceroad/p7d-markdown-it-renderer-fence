@@ -22,6 +22,7 @@ import {
 import mditAttrs from 'markdown-it-attrs'
 import highlightjs from 'highlight.js'
 import { createHighlighter } from 'shiki'
+import { prewarmShikiHighlighter } from './custom-highlight/shiki-prewarm.js'
 
 
 let opt = {}
@@ -64,6 +65,19 @@ const shikiHighlighter = await createHighlighter({
   themes: ['github-light', 'github-dark'],
   langs: ['javascript', 'typescript', 'python', 'shellscript', 'csharp', 'cpp', 'c', 'php', 'hcl'],
 })
+const shikiPrewarmSamples = [
+  { lang: 'javascript', code: 'const a = 1\nnext\n' },
+  { lang: 'typescript', code: 'type User = { id: number }\nconst u: User = { id: 1 }\n' },
+  { lang: 'python', code: 'def inc(x):\n    return x + 1\n' },
+  { lang: 'shellscript', code: 'name=world\necho \"$name\"\n' },
+  { lang: 'csharp', code: 'public class App { public static void Main() { var x = 1; } }\n' },
+  { lang: 'cpp', code: 'int main() { return 0; }\n' },
+  { lang: 'c', code: 'int main(void) { return 0; }\n' },
+  { lang: 'php', code: '<?php\necho 1;\n' },
+  { lang: 'hcl', code: 'resource \"x\" \"y\" {}\n' },
+]
+prewarmShikiHighlighter(shikiHighlighter, shikiPrewarmSamples, 'github-light', { includeExplanation: true })
+prewarmShikiHighlighter(shikiHighlighter, shikiPrewarmSamples, 'github-dark', { includeExplanation: true })
 const mdShiki = mdit({
   html: true,
   langPrefix: 'language-',
@@ -355,6 +369,7 @@ const testData = {
   lineEndSpan: __dirname + path.sep +  'example-line-end-span.txt',
   startInvalid: __dirname + path.sep + 'example-start-invalid.txt',
   lineNumberAdvanced: __dirname + path.sep + 'example-line-number-advanced.txt',
+  lineNotes: __dirname + path.sep + 'example-line-notes.txt',
   commentLineMismatch: __dirname + path.sep + 'example-comment-line-mismatch.txt',
   voidTags: __dirname + path.sep + 'example-void-tags.txt',
   markupPreAttrs: __dirname + path.sep + 'example-markup-pre-attrs.txt',
@@ -1102,6 +1117,11 @@ const runRuntimeVersionPolicyTest = () => {
       })
       const strict = applyCustomHighlights(runtime.root, { strictVersion: true })
       assert.deepStrictEqual(strict, { appliedBlocks: 0, appliedRanges: 0 })
+      const strictWithCustomAccepted = applyCustomHighlights(runtime.root, {
+        strictVersion: true,
+        supportedVersions: [futureVersion],
+      })
+      assert.deepStrictEqual(strictWithCustomAccepted, { appliedBlocks: 0, appliedRanges: 0 })
       const customAccepted = applyCustomHighlights(runtime.root, {
         supportedVersions: [futureVersion],
       })
@@ -1799,6 +1819,9 @@ const runCustomHighlightOptionValidationWarnOnceTest = () => {
           customHighlight: {
             provider: 'custom',
             getRanges: () => ({ ranges: [[0, 0, 1]], scopes: ['x'] }),
+            transport: 'bad-transport',
+            lineFeatureStrategy: 'bad-line-feature-strategy',
+            shikiScopeMode: 'bad-scope-mode',
             unknownFlagForWarnOnce: true,
             theme: { light: 123, default: 'invalid' },
           },
@@ -1812,6 +1835,12 @@ const runCustomHighlightOptionValidationWarnOnceTest = () => {
     assert.strictEqual(hits.length, 1)
     const themeHits = warns.filter((msg) => msg.includes('customHighlight.theme.light should'))
     assert.strictEqual(themeHits.length, 1)
+    const transportHits = warns.filter((msg) => msg.includes('Invalid customHighlight.transport'))
+    assert.strictEqual(transportHits.length, 1)
+    const strategyHits = warns.filter((msg) => msg.includes('Invalid customHighlight.lineFeatureStrategy'))
+    assert.strictEqual(strategyHits.length, 1)
+    const scopeModeHits = warns.filter((msg) => msg.includes('Invalid customHighlight.shikiScopeMode'))
+    assert.strictEqual(scopeModeHits.length, 1)
     console.log('Test: custom-highlight-option-validation-warn-once >>>')
     return true
   } catch (e) {
@@ -1949,6 +1978,196 @@ const runAdvancedLineNumberMismatchFallbackTest = () => {
   }
 }
 
+const runLineNotesNonAdjacentFenceTest = () => {
+  console.log('===========================================================')
+  console.log('line-notes-non-adjacent-fence')
+  try {
+    const markdown = '```txt\na\n```\n\ntext\n\n```line-notes\n1: note\n```\n'
+    const html = md.render(markdown)
+    assert.ok(!html.includes('data-pre-line-notes="true"'))
+    assert.ok(html.includes('<p>text</p>'))
+    assert.ok(html.includes('<pre><code class="language-line-notes">1: note\n</code></pre>\n'))
+    console.log('Test: line-notes-non-adjacent-fence >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
+const runLineNotesMismatchFallbackTest = () => {
+  console.log('===========================================================')
+  console.log('line-notes-mismatch-fallback')
+  try {
+    const markdown = '```mock\na\nb\n```\n```line-notes\n2: note\n```\n'
+    const html = mdCommentLineMismatch.render(markdown)
+    assert.ok(html.includes('data-pre-line-notes="true"'))
+    assert.ok(!html.includes('pre-wrapper-line-notes'))
+    assert.ok(!html.includes('pre-line-note-layer'))
+    assert.ok(!html.includes('class="pre-line-note"'))
+    console.log('Test: line-notes-mismatch-fallback >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
+const runLineNotesInvalidFailClosedTest = () => {
+  console.log('===========================================================')
+  console.log('line-notes-invalid-fail-closed')
+  try {
+    const markdown = '```txt\na\n```\n```line-notes\nnot a valid note line\n```\n'
+    const html = md.render(markdown)
+    assert.ok(!html.includes('data-pre-line-notes="true"'))
+    assert.ok(html.includes('<pre><code class="language-txt">a\n</code></pre>\n'))
+    assert.ok(html.includes('<pre><code class="language-line-notes">not a valid note line\n</code></pre>\n'))
+    console.log('Test: line-notes-invalid-fail-closed >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
+const runLineNotesPartialInvalidFailClosedTest = () => {
+  console.log('===========================================================')
+  console.log('line-notes-partial-invalid-fail-closed')
+  try {
+    const markdown = '```txt\na\nb\n```\n```line-notes\n2: note\nbroken\n```\n'
+    const html = md.render(markdown)
+    assert.ok(!html.includes('data-pre-line-notes="true"'))
+    assert.ok(html.includes('<pre><code class="language-txt">a\nb\n</code></pre>\n'))
+    assert.ok(html.includes('<pre><code class="language-line-notes">2: note\nbroken\n</code></pre>\n'))
+    console.log('Test: line-notes-partial-invalid-fail-closed >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
+const runLineNotesDuplicateStartFailClosedTest = () => {
+  console.log('===========================================================')
+  console.log('line-notes-duplicate-start-fail-closed')
+  try {
+    const markdown = '```txt\na\nb\nc\n```\n```line-notes\n2: first\n2-3: duplicate\n```\n'
+    const html = md.render(markdown)
+    assert.ok(!html.includes('data-pre-line-notes="true"'))
+    assert.ok(html.includes('<pre><code class="language-txt">a\nb\nc\n</code></pre>\n'))
+    assert.ok(html.includes('<pre><code class="language-line-notes">2: first\n2-3: duplicate\n</code></pre>\n'))
+    console.log('Test: line-notes-duplicate-start-fail-closed >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
+const runLineNotesHighlightPreDisabledTest = () => {
+  console.log('===========================================================')
+  console.log('line-notes-highlight-pre-disabled')
+  try {
+    const mdHighlightPre = mdit({
+      html: true,
+      langPrefix: 'language-',
+      highlight: (str, lang) => {
+        if (lang === 'mock') return `<pre class="from-highlight"><code><span>${str.replace(/\n/g, '</span>\n<span>')}</span></code></pre>`
+        return md.utils.escapeHtml(str)
+      },
+    }).use(mditRendererFence, { useHighlightPre: true }).use(mditAttrs)
+
+    const html = mdHighlightPre.render('```mock\na\nb\n```\n```line-notes\n2: note\n```\n')
+    assert.ok(html.includes('data-pre-line-notes="true"'))
+    assert.ok(!html.includes('pre-wrapper-line-notes'))
+    assert.ok(!html.includes('pre-line-note-layer'))
+    assert.ok(!html.includes('class="pre-line-note"'))
+    console.log('Test: line-notes-highlight-pre-disabled >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
+const runLineNotesWidthAttrTest = () => {
+  console.log('===========================================================')
+  console.log('line-notes-width-attr')
+  try {
+    const markdown = '```txt\na\nb\n```\n```line-notes\n2: note {width="9em"}\n```\n'
+    const html = md.render(markdown)
+    const expected = '<div class="pre-wrapper-line-notes" data-pre-line-notes-layout="anchor"><pre><code class="language-txt" data-pre-line-notes="true"><span class="pre-line">a</span>\n<span class="pre-line pre-line-has-end-note" data-pre-line-note-from="2" data-pre-line-note-to="2"><span class="pre-line-content" style="anchor-name:--pre-line-note-2;" aria-describedby="pre-line-note-1-1-2">b</span></span>\n</code></pre><div class="pre-line-note-layer"><div id="pre-line-note-1-1-2" class="pre-line-note" role="note" data-pre-line-note-from="2" data-pre-line-note-to="2" data-pre-line-note-label="2" style="position-anchor:--pre-line-note-2; --line-note-width:9em;">note</div></div></div>\n'
+    assert.strictEqual(html, expected)
+    console.log('Test: line-notes-width-attr >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
+const runLineNotesMultilineAttrOnlyContinuationTest = () => {
+  console.log('===========================================================')
+  console.log('line-notes-multiline-attr-only-continuation')
+  try {
+    const markdown = '```txt\na\nb\nc\n```\n```line-notes\n2-3:\n  setup window\n  keep paired steps\n  {width="11rem"}\n```\n'
+    const html = md.render(markdown)
+    const expected = '<div class="pre-wrapper-line-notes" data-pre-line-notes-layout="anchor"><pre><code class="language-txt" data-pre-line-notes="true"><span class="pre-line">a</span>\n<span class="pre-line pre-line-has-end-note" data-pre-line-note-from="2" data-pre-line-note-to="3"><span class="pre-line-content" style="anchor-name:--pre-line-note-2;" aria-describedby="pre-line-note-1-1-2">b</span></span>\n<span class="pre-line">c</span>\n</code></pre><div class="pre-line-note-layer"><div id="pre-line-note-1-1-2" class="pre-line-note" role="note" data-pre-line-note-from="2" data-pre-line-note-to="3" data-pre-line-note-label="2-3" style="position-anchor:--pre-line-note-2; --line-note-width:11rem;">setup window\nkeep paired steps</div></div></div>\n'
+    assert.strictEqual(html, expected)
+    console.log('Test: line-notes-multiline-attr-only-continuation >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
+const runApiLineNotesTest = () => {
+  console.log('===========================================================')
+  console.log('api-line-notes')
+  try {
+    const env = {}
+    const markdown = '```js {start="2"}\na\nb\nc\n```\n```line-notes\n1-2: setup\n3：result\n```\n'
+    const html = mdApiCustom.render(markdown, env)
+    const expected = '<div class="pre-wrapper-line-notes" data-pre-line-notes-layout="anchor"><pre data-pre-highlight="hl-1"><code class="language-js" data-pre-start="2" data-pre-line-notes="true" style="counter-set:pre-line-number 2;"><span class="pre-line pre-line-has-end-note" data-pre-line-note-from="1" data-pre-line-note-to="2"><span class="pre-line-content" style="anchor-name:--pre-line-note-1;" aria-describedby="pre-line-note-1-1-1">a</span></span>\n<span class="pre-line">b</span>\n<span class="pre-line pre-line-has-end-note" data-pre-line-note-from="3" data-pre-line-note-to="3"><span class="pre-line-content" style="anchor-name:--pre-line-note-3;" aria-describedby="pre-line-note-1-1-3">c</span></span>\n</code></pre><div class="pre-line-note-layer"><div id="pre-line-note-1-1-1" class="pre-line-note" role="note" data-pre-line-note-from="1" data-pre-line-note-to="2" data-pre-line-note-label="1-2" style="position-anchor:--pre-line-note-1;">setup</div><div id="pre-line-note-1-1-3" class="pre-line-note" role="note" data-pre-line-note-from="3" data-pre-line-note-to="3" data-pre-line-note-label="3" style="position-anchor:--pre-line-note-3;">result</div></div></div>\n'
+    assert.strictEqual(html, expected)
+    assert.ok(env.rendererFenceCustomHighlights)
+    assert.ok(env.rendererFenceCustomHighlights['hl-1'])
+    console.log('Test: api-line-notes >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
+const runLineNotesMapMergeTest = () => {
+  console.log('===========================================================')
+  console.log('line-notes-map-merge')
+  try {
+    const markdown = '```txt\na\n```\n```line-notes\n1: note\n```\n'
+    const tokens = md.parse(markdown, {})
+    const fences = tokens.filter((token) => token.type === 'fence')
+    assert.strictEqual(fences.length, 1)
+    assert.deepStrictEqual(fences[0].map, [0, 6])
+    console.log('Test: line-notes-map-merge >>>')
+    return true
+  } catch (e) {
+    console.log('incorrect:')
+    console.log(e)
+    return false
+  }
+}
+
 const runAdvancedLineNumberHighlightPreDisabledTest = () => {
   console.log('===========================================================')
   console.log('advanced-line-number-highlight-pre-disabled')
@@ -2067,6 +2286,7 @@ pass = runTest(mdLinesEmphasis, testData.linesEmphasis, pass)
 pass = runTest(mdLIneEndSpan, testData.lineEndSpan, pass)
 pass = runTest(md, testData.startInvalid, pass)
 pass = runTest(md, testData.lineNumberAdvanced, pass)
+pass = runTest(md, testData.lineNotes, pass)
 pass = runTest(mdCommentLineMismatch, testData.commentLineMismatch, pass)
 pass = runTest(mdVoidTags, testData.voidTags, pass)
 pass = runTest(mdMarkupPreAttrs, testData.markupPreAttrs, pass)
@@ -2150,6 +2370,16 @@ pass = runPayloadScriptHelperTest() && pass
 pass = runPayloadSchemaVersionContractTest() && pass
 pass = runEnvReuseResetTest() && pass
 pass = runMarkdownItFenceLfNormalizationTest() && pass
+pass = runLineNotesNonAdjacentFenceTest() && pass
+pass = runLineNotesMismatchFallbackTest() && pass
+pass = runLineNotesInvalidFailClosedTest() && pass
+pass = runLineNotesPartialInvalidFailClosedTest() && pass
+pass = runLineNotesDuplicateStartFailClosedTest() && pass
+pass = runLineNotesHighlightPreDisabledTest() && pass
+pass = runLineNotesWidthAttrTest() && pass
+pass = runLineNotesMultilineAttrOnlyContinuationTest() && pass
+pass = runApiLineNotesTest() && pass
+pass = runLineNotesMapMergeTest() && pass
 pass = runAdvancedLineNumberMismatchFallbackTest() && pass
 pass = runAdvancedLineNumberHighlightPreDisabledTest() && pass
 pass = runApiAdvancedLineNumberTest() && pass

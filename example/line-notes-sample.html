@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>renderer-fence line notes sample</title>
+  <link rel="stylesheet" href="./line-number.css">
+  <link rel="stylesheet" href="./line-notes.css">
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: sans-serif;
+      --sample-border: #d7d7d7;
+      --sample-surface: #f4f4f4;
+      --sample-text: #222;
+      --sample-muted: #666;
+      --sample-code-padding: 1rem;
+      --sample-code-font-family: ui-monospace, Menlo, Consolas, monospace;
+      --sample-code-font-size: 0.95rem;
+      --sample-code-line-height: 1.5;
+    }
+
+    body {
+      margin: 2rem;
+      line-height: 1.5;
+    }
+
+    main {
+      max-width: 72rem;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      margin-top: 0;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-note {
+      color: var(--sample-muted);
+      margin-bottom: 1rem;
+    }
+
+    p code {
+      display: inline;
+      padding: 0.1em 0.35em;
+      background: var(--sample-surface);
+      color: var(--sample-text);
+      font-family: var(--sample-code-font-family);
+      font-size: 0.95em;
+    }
+
+    section + section {
+      margin-top: 2rem;
+    }
+
+    .sample-grid {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.35fr) minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .panel {
+      min-width: 0;
+    }
+
+    .panel.preview {
+      overflow: visible;
+    }
+
+    .panel.preview .preview-scroller {
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-block-end: 0.75rem;
+    }
+
+    .panel h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1rem;
+    }
+
+    .panel pre {
+      margin: 0;
+    }
+
+    .panel pre > code,
+    .panel pre > samp {
+      display: block;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: var(--sample-code-padding);
+      background: var(--sample-surface);
+      color: var(--sample-text);
+      font-family: var(--sample-code-font-family);
+      font-size: var(--sample-code-font-size);
+      line-height: var(--sample-code-line-height);
+      border: 1px solid var(--sample-border);
+      box-sizing: border-box;
+    }
+
+    .panel.source pre > code {
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      word-break: normal;
+    }
+
+    .panel.preview .pre-wrapper-line-notes {
+      --line-note-inline-gap: 1.25ch;
+      --line-note-font-family: var(--sample-code-font-family);
+      --line-note-font-size: var(--sample-code-font-size);
+      --line-note-line-height: var(--sample-code-line-height);
+      inline-size: 720px;
+      max-inline-size: none;
+      box-sizing: border-box;
+    }
+
+    .panel.preview .pre-wrapper-line-notes[data-pre-line-notes-layout="anchor"] {
+      padding-block-end: calc(1.25em + (var(--pre-line-note-overflow-lines, 0) * 1.5em));
+    }
+
+    .panel.preview .pre-wrapper-line-notes > pre {
+      margin: 0;
+      border: 1px solid var(--sample-border);
+      background: var(--sample-surface);
+      box-sizing: border-box;
+    }
+
+    .panel.preview .pre-wrapper-line-notes > pre > code,
+    .panel.preview .pre-wrapper-line-notes > pre > samp {
+      padding: var(--sample-code-padding);
+      border: 0;
+      background: transparent;
+      overflow: visible;
+    }
+
+    .panel.preview .sample-force-fallback[data-pre-line-notes-layout="anchor"] {
+      padding-block-end: 0;
+    }
+
+    .panel.preview .sample-force-fallback[data-pre-line-notes-layout="anchor"] .pre-line-note-layer {
+      display: grid;
+      gap: 0.35rem;
+      margin-top: 0.65rem;
+    }
+
+    .panel.preview .sample-force-fallback[data-pre-line-notes-layout="anchor"] .pre-line-note {
+      display: grid;
+      grid-template-columns: max-content minmax(0, 1fr);
+      align-items: start;
+      column-gap: 0.5rem;
+      position: static;
+      inline-size: auto;
+      padding: 0;
+      border: 0;
+      background: transparent;
+    }
+
+    .panel.preview .sample-force-fallback[data-pre-line-notes-layout="anchor"] .pre-line-note::before {
+      content: "line " attr(data-pre-line-note-label);
+      display: inline-block;
+      padding: 0.01rem 0.38rem;
+      border: 1px solid var(--sample-border);
+      border-radius: 0.4rem;
+      background: var(--sample-surface);
+      color: var(--sample-muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 960px) {
+      .sample-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --sample-border: #555;
+        --sample-surface: #2b2b2b;
+        --sample-text: #ddd;
+        --sample-muted: #aaa;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Line Notes Sample</h1>
+    <p>This file shows the Markdown input, preview, and HTML output contract used by <code>line-notes</code> and the short alias <code>notes</code>. The preview column also demonstrates a few suggested CSS presentation patterns.</p>
+
+    <section>
+      <h2>Multiple short inline notes</h2>
+      <p class="section-note">This uses 10 varied code lines plus several short notes. Most notes use the default width, and one line narrows locally to <code>{width="8rem"}</code>.</p>
+      <div class="sample-grid">
+        <article class="panel source">
+          <h3>Markdown</h3>
+          <pre><code>```txt
+seed = read_primary_seed(config.primaryKey)
+normalized_alpha = normalize_value_alpha(seed, fallback_alpha_01)
+branch_id = select_branch_id(normalized_alpha)
+audit_log.push(branch_id)
+cache_key = build_cache_key(branch_id, normalized_alpha, region_east_1)
+cache.write(cache_key, normalized_alpha)
+dispatch_plan = create_dispatch_plan(cache_key, retry_window_short)
+emit_metric("alpha.normalize.commit")
+return finalize_alpha_result(dispatch_plan, normalized_alpha)
+cleanup_ephemeral_handles(cache_key)
+```
+```line-notes
+2: first normalize pass
+5: cache lookup key {width="8rem"}
+9: final return
+```</code></pre>
+        </article>
+        <article class="panel preview">
+          <h3>Preview</h3>
+          <div class="preview-scroller">
+            <div class="pre-wrapper-line-notes" data-pre-line-notes-layout="anchor"><pre><code class="language-txt" data-pre-line-notes="true"><span class="pre-line">seed = read_primary_seed(config.primaryKey)</span>
+<span class="pre-line pre-line-has-end-note" data-pre-line-note-from="2" data-pre-line-note-to="2"><span class="pre-line-content" style="anchor-name:--pre-line-note-2;" aria-describedby="sample-line-note-1-2">normalized_alpha = normalize_value_alpha(seed, fallback_alpha_01)</span></span>
+<span class="pre-line">branch_id = select_branch_id(normalized_alpha)</span>
+<span class="pre-line">audit_log.push(branch_id)</span>
+<span class="pre-line pre-line-has-end-note" data-pre-line-note-from="5" data-pre-line-note-to="5"><span class="pre-line-content" style="anchor-name:--pre-line-note-5;" aria-describedby="sample-line-note-1-5">cache_key = build_cache_key(branch_id, normalized_alpha, region_east_1)</span></span>
+<span class="pre-line">cache.write(cache_key, normalized_alpha)</span>
+<span class="pre-line">dispatch_plan = create_dispatch_plan(cache_key, retry_window_short)</span>
+<span class="pre-line">emit_metric(&quot;alpha.normalize.commit&quot;)</span>
+<span class="pre-line pre-line-has-end-note" data-pre-line-note-from="9" data-pre-line-note-to="9"><span class="pre-line-content" style="anchor-name:--pre-line-note-9;" aria-describedby="sample-line-note-1-9">return finalize_alpha_result(dispatch_plan, normalized_alpha)</span></span>
+<span class="pre-line">cleanup_ephemeral_handles(cache_key)</span>
+</code></pre><div class="pre-line-note-layer"><div id="sample-line-note-1-2" class="pre-line-note" role="note" data-pre-line-note-from="2" data-pre-line-note-to="2" data-pre-line-note-label="2" style="position-anchor:--pre-line-note-2;">first normalize pass</div><div id="sample-line-note-1-5" class="pre-line-note" role="note" data-pre-line-note-from="5" data-pre-line-note-to="5" data-pre-line-note-label="5" style="position-anchor:--pre-line-note-5; --line-note-width:8rem;">cache lookup key</div><div id="sample-line-note-1-9" class="pre-line-note" role="note" data-pre-line-note-from="9" data-pre-line-note-to="9" data-pre-line-note-label="9" style="position-anchor:--pre-line-note-9;">final return</div></div></div>
+          </div>
+        </article>
+        <article class="panel source">
+          <h3>HTML</h3>
+          <pre><code>&lt;div class=&quot;pre-wrapper-line-notes&quot; data-pre-line-notes-layout=&quot;anchor&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-txt&quot; data-pre-line-notes=&quot;true&quot;&gt;&lt;span class=&quot;pre-line&quot;&gt;seed = read_primary_seed(config.primaryKey)&lt;/span&gt;
+&lt;span class=&quot;pre-line pre-line-has-end-note&quot; data-pre-line-note-from=&quot;2&quot; data-pre-line-note-to=&quot;2&quot;&gt;&lt;span class=&quot;pre-line-content&quot; style=&quot;anchor-name:--pre-line-note-2;&quot; aria-describedby=&quot;sample-line-note-1-2&quot;&gt;normalized_alpha = normalize_value_alpha(seed, fallback_alpha_01)&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;pre-line&quot;&gt;branch_id = select_branch_id(normalized_alpha)&lt;/span&gt;
+&lt;span class=&quot;pre-line&quot;&gt;audit_log.push(branch_id)&lt;/span&gt;
+&lt;span class=&quot;pre-line pre-line-has-end-note&quot; data-pre-line-note-from=&quot;5&quot; data-pre-line-note-to=&quot;5&quot;&gt;&lt;span class=&quot;pre-line-content&quot; style=&quot;anchor-name:--pre-line-note-5;&quot; aria-describedby=&quot;sample-line-note-1-5&quot;&gt;cache_key = build_cache_key(branch_id, normalized_alpha, region_east_1)&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;pre-line&quot;&gt;cache.write(cache_key, normalized_alpha)&lt;/span&gt;
+&lt;span class=&quot;pre-line&quot;&gt;dispatch_plan = create_dispatch_plan(cache_key, retry_window_short)&lt;/span&gt;
+&lt;span class=&quot;pre-line&quot;&gt;emit_metric(&amp;quot;alpha.normalize.commit&amp;quot;)&lt;/span&gt;
+&lt;span class=&quot;pre-line pre-line-has-end-note&quot; data-pre-line-note-from=&quot;9&quot; data-pre-line-note-to=&quot;9&quot;&gt;&lt;span class=&quot;pre-line-content&quot; style=&quot;anchor-name:--pre-line-note-9;&quot; aria-describedby=&quot;sample-line-note-1-9&quot;&gt;return finalize_alpha_result(dispatch_plan, normalized_alpha)&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;pre-line&quot;&gt;cleanup_ephemeral_handles(cache_key)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;div class=&quot;pre-line-note-layer&quot;&gt;&lt;div id=&quot;sample-line-note-1-2&quot; class=&quot;pre-line-note&quot; role=&quot;note&quot; data-pre-line-note-from=&quot;2&quot; data-pre-line-note-to=&quot;2&quot; data-pre-line-note-label=&quot;2&quot; style=&quot;position-anchor:--pre-line-note-2;&quot;&gt;first normalize pass&lt;/div&gt;&lt;div id=&quot;sample-line-note-1-5&quot; class=&quot;pre-line-note&quot; role=&quot;note&quot; data-pre-line-note-from=&quot;5&quot; data-pre-line-note-to=&quot;5&quot; data-pre-line-note-label=&quot;5&quot; style=&quot;position-anchor:--pre-line-note-5; --line-note-width:8rem;&quot;&gt;cache lookup key&lt;/div&gt;&lt;div id=&quot;sample-line-note-1-9&quot; class=&quot;pre-line-note&quot; role=&quot;note&quot; data-pre-line-note-from=&quot;9&quot; data-pre-line-note-to=&quot;9&quot; data-pre-line-note-label=&quot;9&quot; style=&quot;position-anchor:--pre-line-note-9;&quot;&gt;final return&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;</code></pre>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Multiline and range note</h2>
+      <p class="section-note">This uses longer lines plus multiline notes. For multiline notes, prefer a trailing attrs-only continuation line so the note body stays readable. The second note intentionally wraps because it is capped to <code>13rem</code>.</p>
+      <div class="sample-grid">
+        <article class="panel source">
+          <h3>Markdown</h3>
+          <pre><code>```txt {start="41"}
+record_41 = normalize_payload_alpha_41(item_41)
+record_42 = normalize_payload_alpha_42(item_42)
+record_43 = normalize_payload_alpha_43(item_43)
+record_44 = normalize_payload_alpha_44(item_44)
+record_45 = normalize_payload_alpha_45(item_45)
+record_46 = normalize_payload_alpha_46(item_46)
+record_47 = normalize_payload_alpha_47(item_47)
+record_48 = normalize_payload_alpha_48(item_48)
+record_49 = normalize_payload_alpha_49(item_49)
+record_50 = normalize_payload_alpha_50(item_50)
+```
+```line-notes
+3-4:
+  setup window
+  keep paired steps
+  {width="11rem"}
+8：commit result and emit cache update {width="13rem"}
+```</code></pre>
+        </article>
+        <article class="panel preview">
+          <h3>Preview</h3>
+          <div class="preview-scroller">
+            <div class="pre-wrapper-line-notes" data-pre-line-notes-layout="anchor"><pre><code class="language-txt" data-pre-start="41" data-pre-line-notes="true" style="counter-set:pre-line-number 41;"><span class="pre-line">record_41 = normalize_payload_alpha_41(item_41)</span>
+<span class="pre-line">record_42 = normalize_payload_alpha_42(item_42)</span>
+<span class="pre-line pre-line-has-end-note" data-pre-line-note-from="3" data-pre-line-note-to="4"><span class="pre-line-content" style="anchor-name:--pre-line-note-3;" aria-describedby="sample-line-note-2-3">record_43 = normalize_payload_alpha_43(item_43)</span></span>
+<span class="pre-line">record_44 = normalize_payload_alpha_44(item_44)</span>
+<span class="pre-line">record_45 = normalize_payload_alpha_45(item_45)</span>
+<span class="pre-line">record_46 = normalize_payload_alpha_46(item_46)</span>
+<span class="pre-line">record_47 = normalize_payload_alpha_47(item_47)</span>
+<span class="pre-line pre-line-has-end-note" data-pre-line-note-from="8" data-pre-line-note-to="8"><span class="pre-line-content" style="anchor-name:--pre-line-note-8;" aria-describedby="sample-line-note-2-8">record_48 = normalize_payload_alpha_48(item_48)</span></span>
+<span class="pre-line">record_49 = normalize_payload_alpha_49(item_49)</span>
+<span class="pre-line">record_50 = normalize_payload_alpha_50(item_50)</span>
+</code></pre><div class="pre-line-note-layer"><div id="sample-line-note-2-3" class="pre-line-note" role="note" data-pre-line-note-from="3" data-pre-line-note-to="4" data-pre-line-note-label="3-4" style="position-anchor:--pre-line-note-3; --line-note-width:11rem;">setup window
+keep paired steps</div><div id="sample-line-note-2-8" class="pre-line-note" role="note" data-pre-line-note-from="8" data-pre-line-note-to="8" data-pre-line-note-label="8" style="position-anchor:--pre-line-note-8; --line-note-width:13rem;">commit result and emit cache update</div></div></div>
+          </div>
+        </article>
+        <article class="panel source">
+          <h3>HTML</h3>
+          <pre><code>&lt;div class=&quot;pre-wrapper-line-notes&quot; data-pre-line-notes-layout=&quot;anchor&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-txt&quot; data-pre-start=&quot;41&quot; data-pre-line-notes=&quot;true&quot; style=&quot;counter-set:pre-line-number 41;&quot;&gt;&lt;span class=&quot;pre-line&quot;&gt;record_41 = normalize_payload_alpha_41(item_41)&lt;/span&gt;
+&lt;span class=&quot;pre-line&quot;&gt;record_42 = normalize_payload_alpha_42(item_42)&lt;/span&gt;
+&lt;span class=&quot;pre-line pre-line-has-end-note&quot; data-pre-line-note-from=&quot;3&quot; data-pre-line-note-to=&quot;4&quot;&gt;&lt;span class=&quot;pre-line-content&quot; style=&quot;anchor-name:--pre-line-note-3;&quot; aria-describedby=&quot;sample-line-note-2-3&quot;&gt;record_43 = normalize_payload_alpha_43(item_43)&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;pre-line&quot;&gt;record_44 = normalize_payload_alpha_44(item_44)&lt;/span&gt;
+&lt;span class=&quot;pre-line&quot;&gt;record_45 = normalize_payload_alpha_45(item_45)&lt;/span&gt;
+&lt;span class=&quot;pre-line&quot;&gt;record_46 = normalize_payload_alpha_46(item_46)&lt;/span&gt;
+&lt;span class=&quot;pre-line&quot;&gt;record_47 = normalize_payload_alpha_47(item_47)&lt;/span&gt;
+&lt;span class=&quot;pre-line pre-line-has-end-note&quot; data-pre-line-note-from=&quot;8&quot; data-pre-line-note-to=&quot;8&quot;&gt;&lt;span class=&quot;pre-line-content&quot; style=&quot;anchor-name:--pre-line-note-8;&quot; aria-describedby=&quot;sample-line-note-2-8&quot;&gt;record_48 = normalize_payload_alpha_48(item_48)&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;pre-line&quot;&gt;record_49 = normalize_payload_alpha_49(item_49)&lt;/span&gt;
+&lt;span class=&quot;pre-line&quot;&gt;record_50 = normalize_payload_alpha_50(item_50)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;div class=&quot;pre-line-note-layer&quot;&gt;&lt;div id=&quot;sample-line-note-2-3&quot; class=&quot;pre-line-note&quot; role=&quot;note&quot; data-pre-line-note-from=&quot;3&quot; data-pre-line-note-to=&quot;4&quot; data-pre-line-note-label=&quot;3-4&quot; style=&quot;position-anchor:--pre-line-note-3; --line-note-width:11rem;&quot;&gt;setup window
+keep paired steps&lt;/div&gt;&lt;div id=&quot;sample-line-note-2-8&quot; class=&quot;pre-line-note&quot; role=&quot;note&quot; data-pre-line-note-from=&quot;8&quot; data-pre-line-note-to=&quot;8&quot; data-pre-line-note-label=&quot;8&quot; style=&quot;position-anchor:--pre-line-note-8; --line-note-width:13rem;&quot;&gt;commit result and emit cache update&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;</code></pre>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Long code lines (suggested fallback)</h2>
+      <p class="section-note">This block uses 10 long code lines plus several notes. The preview intentionally forces the below-block fallback so the long code stays legible; in that mode the notes use the same compact label-chip treatment as the non-anchor fallback, without full-width comment boxes. The emitted HTML still keeps the anchor metadata.</p>
+      <div class="sample-grid">
+        <article class="panel source">
+          <h3>Markdown</h3>
+          <pre><code>```txt
+const requestKey = buildCompositeKey(accountId, region, featureFlags, retryBudget)
+const preparedInput = mergePrimaryAndShadowInputs(primaryInput, shadowInput, defaultsMap)
+const snapshot = checkpoint_store.begin_snapshot(requestKey, preparedInput)
+const normalizedBundle = normalize_bundle_for_transport(preparedInput, schema_version, locale_hint)
+const dispatchResult = dispatch_bundle_through_pipeline(normalizedBundle, retry_plan_compact, observer_hooks)
+const cacheToken = write_expanded_snapshot_cache(snapshot, normalizedBundle, dispatchResult.timeline)
+publish_bundle_summary(accountId, requestKey, cacheToken, dispatchResult.timeline, observer_hooks)
+release_snapshot(snapshot, cacheToken, dispatchResult.timeline, metrics_collector)
+return finalize_published_bundle(dispatchResult, cacheToken, metrics_collector, observer_hooks)
+cleanup_observer_handles(observer_hooks, cacheToken)
+```
+```line-notes
+2: merge incoming inputs before snapshot
+5: main latency hotspot
+7: publish visible summary
+9: final response assembly
+```</code></pre>
+        </article>
+        <article class="panel preview">
+          <h3>Preview</h3>
+          <div class="preview-scroller">
+            <div class="pre-wrapper-line-notes sample-force-fallback" data-pre-line-notes-layout="anchor"><pre><code class="language-txt" data-pre-line-notes="true"><span class="pre-line">const requestKey = buildCompositeKey(accountId, region, featureFlags, retryBudget)</span>
+<span class="pre-line pre-line-has-end-note" data-pre-line-note-from="2" data-pre-line-note-to="2"><span class="pre-line-content" style="anchor-name:--pre-line-note-2;" aria-describedby="sample-line-note-3-2">const preparedInput = mergePrimaryAndShadowInputs(primaryInput, shadowInput, defaultsMap)</span></span>
+<span class="pre-line">const snapshot = checkpoint_store.begin_snapshot(requestKey, preparedInput)</span>
+<span class="pre-line">const normalizedBundle = normalize_bundle_for_transport(preparedInput, schema_version, locale_hint)</span>
+<span class="pre-line pre-line-has-end-note" data-pre-line-note-from="5" data-pre-line-note-to="5"><span class="pre-line-content" style="anchor-name:--pre-line-note-5;" aria-describedby="sample-line-note-3-5">const dispatchResult = dispatch_bundle_through_pipeline(normalizedBundle, retry_plan_compact, observer_hooks)</span></span>
+<span class="pre-line">const cacheToken = write_expanded_snapshot_cache(snapshot, normalizedBundle, dispatchResult.timeline)</span>
+<span class="pre-line pre-line-has-end-note" data-pre-line-note-from="7" data-pre-line-note-to="7"><span class="pre-line-content" style="anchor-name:--pre-line-note-7;" aria-describedby="sample-line-note-3-7">publish_bundle_summary(accountId, requestKey, cacheToken, dispatchResult.timeline, observer_hooks)</span></span>
+<span class="pre-line">release_snapshot(snapshot, cacheToken, dispatchResult.timeline, metrics_collector)</span>
+<span class="pre-line pre-line-has-end-note" data-pre-line-note-from="9" data-pre-line-note-to="9"><span class="pre-line-content" style="anchor-name:--pre-line-note-9;" aria-describedby="sample-line-note-3-9">return finalize_published_bundle(dispatchResult, cacheToken, metrics_collector, observer_hooks)</span></span>
+<span class="pre-line">cleanup_observer_handles(observer_hooks, cacheToken)</span>
+</code></pre><div class="pre-line-note-layer"><div id="sample-line-note-3-2" class="pre-line-note" role="note" data-pre-line-note-from="2" data-pre-line-note-to="2" data-pre-line-note-label="2" style="position-anchor:--pre-line-note-2;">merge incoming inputs before snapshot</div><div id="sample-line-note-3-5" class="pre-line-note" role="note" data-pre-line-note-from="5" data-pre-line-note-to="5" data-pre-line-note-label="5" style="position-anchor:--pre-line-note-5;">main latency hotspot</div><div id="sample-line-note-3-7" class="pre-line-note" role="note" data-pre-line-note-from="7" data-pre-line-note-to="7" data-pre-line-note-label="7" style="position-anchor:--pre-line-note-7;">publish visible summary</div><div id="sample-line-note-3-9" class="pre-line-note" role="note" data-pre-line-note-from="9" data-pre-line-note-to="9" data-pre-line-note-label="9" style="position-anchor:--pre-line-note-9;">final response assembly</div></div></div>
+          </div>
+        </article>
+        <article class="panel source">
+          <h3>HTML</h3>
+          <pre><code>&lt;div class=&quot;pre-wrapper-line-notes&quot; data-pre-line-notes-layout=&quot;anchor&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-txt&quot; data-pre-line-notes=&quot;true&quot;&gt;&lt;span class=&quot;pre-line&quot;&gt;const requestKey = buildCompositeKey(accountId, region, featureFlags, retryBudget)&lt;/span&gt;
+&lt;span class=&quot;pre-line pre-line-has-end-note&quot; data-pre-line-note-from=&quot;2&quot; data-pre-line-note-to=&quot;2&quot;&gt;&lt;span class=&quot;pre-line-content&quot; style=&quot;anchor-name:--pre-line-note-2;&quot; aria-describedby=&quot;sample-line-note-3-2&quot;&gt;const preparedInput = mergePrimaryAndShadowInputs(primaryInput, shadowInput, defaultsMap)&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;pre-line&quot;&gt;const snapshot = checkpoint_store.begin_snapshot(requestKey, preparedInput)&lt;/span&gt;
+&lt;span class=&quot;pre-line&quot;&gt;const normalizedBundle = normalize_bundle_for_transport(preparedInput, schema_version, locale_hint)&lt;/span&gt;
+&lt;span class=&quot;pre-line pre-line-has-end-note&quot; data-pre-line-note-from=&quot;5&quot; data-pre-line-note-to=&quot;5&quot;&gt;&lt;span class=&quot;pre-line-content&quot; style=&quot;anchor-name:--pre-line-note-5;&quot; aria-describedby=&quot;sample-line-note-3-5&quot;&gt;const dispatchResult = dispatch_bundle_through_pipeline(normalizedBundle, retry_plan_compact, observer_hooks)&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;pre-line&quot;&gt;const cacheToken = write_expanded_snapshot_cache(snapshot, normalizedBundle, dispatchResult.timeline)&lt;/span&gt;
+&lt;span class=&quot;pre-line pre-line-has-end-note&quot; data-pre-line-note-from=&quot;7&quot; data-pre-line-note-to=&quot;7&quot;&gt;&lt;span class=&quot;pre-line-content&quot; style=&quot;anchor-name:--pre-line-note-7;&quot; aria-describedby=&quot;sample-line-note-3-7&quot;&gt;publish_bundle_summary(accountId, requestKey, cacheToken, dispatchResult.timeline, observer_hooks)&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;pre-line&quot;&gt;release_snapshot(snapshot, cacheToken, dispatchResult.timeline, metrics_collector)&lt;/span&gt;
+&lt;span class=&quot;pre-line pre-line-has-end-note&quot; data-pre-line-note-from=&quot;9&quot; data-pre-line-note-to=&quot;9&quot;&gt;&lt;span class=&quot;pre-line-content&quot; style=&quot;anchor-name:--pre-line-note-9;&quot; aria-describedby=&quot;sample-line-note-3-9&quot;&gt;return finalize_published_bundle(dispatchResult, cacheToken, metrics_collector, observer_hooks)&lt;/span&gt;&lt;/span&gt;
+&lt;span class=&quot;pre-line&quot;&gt;cleanup_observer_handles(observer_hooks, cacheToken)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;div class=&quot;pre-line-note-layer&quot;&gt;&lt;div id=&quot;sample-line-note-3-2&quot; class=&quot;pre-line-note&quot; role=&quot;note&quot; data-pre-line-note-from=&quot;2&quot; data-pre-line-note-to=&quot;2&quot; data-pre-line-note-label=&quot;2&quot; style=&quot;position-anchor:--pre-line-note-2;&quot;&gt;merge incoming inputs before snapshot&lt;/div&gt;&lt;div id=&quot;sample-line-note-3-5&quot; class=&quot;pre-line-note&quot; role=&quot;note&quot; data-pre-line-note-from=&quot;5&quot; data-pre-line-note-to=&quot;5&quot; data-pre-line-note-label=&quot;5&quot; style=&quot;position-anchor:--pre-line-note-5;&quot;&gt;main latency hotspot&lt;/div&gt;&lt;div id=&quot;sample-line-note-3-7&quot; class=&quot;pre-line-note&quot; role=&quot;note&quot; data-pre-line-note-from=&quot;7&quot; data-pre-line-note-to=&quot;7&quot; data-pre-line-note-label=&quot;7&quot; style=&quot;position-anchor:--pre-line-note-7;&quot;&gt;publish visible summary&lt;/div&gt;&lt;div id=&quot;sample-line-note-3-9&quot; class=&quot;pre-line-note&quot; role=&quot;note&quot; data-pre-line-note-from=&quot;9&quot; data-pre-line-note-to=&quot;9&quot; data-pre-line-note-label=&quot;9&quot; style=&quot;position-anchor:--pre-line-note-9;&quot;&gt;final response assembly&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;</code></pre>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Long note width tuning</h2>
+      <p class="section-note">Long notes should wrap inside a bounded note box. Per-note width such as <code>{width="10rem"}</code> is still the main control; the anchor layout keeps only a modest default reserve so ordinary code blocks do not grow unnecessarily.</p>
+      <div class="sample-grid">
+        <article class="panel source">
+          <h3>Markdown</h3>
+          <pre><code>```txt
+a
+b
+```
+```line-notes
+2: This note is intentionally long so you can see how width tuning and wrapping behave in the inline note column. {width="10rem"}
+```</code></pre>
+        </article>
+        <article class="panel preview">
+          <h3>Preview</h3>
+          <div class="preview-scroller">
+            <div class="pre-wrapper-line-notes" data-pre-line-notes-layout="anchor"><pre><code class="language-txt" data-pre-line-notes="true"><span class="pre-line">a</span>
+<span class="pre-line pre-line-has-end-note" data-pre-line-note-from="2" data-pre-line-note-to="2"><span class="pre-line-content" style="anchor-name:--pre-line-note-2;" aria-describedby="sample-line-note-4-2">b</span></span>
+</code></pre><div class="pre-line-note-layer"><div id="sample-line-note-4-2" class="pre-line-note" role="note" data-pre-line-note-from="2" data-pre-line-note-to="2" style="position-anchor:--pre-line-note-2; --line-note-width:10rem;">This note is intentionally long so you can see how width tuning and wrapping behave in the inline note column.</div></div></div>
+          </div>
+        </article>
+        <article class="panel source">
+          <h3>HTML</h3>
+          <pre><code>&lt;div class="pre-wrapper-line-notes" data-pre-line-notes-layout="anchor"&gt;&lt;pre&gt;&lt;code class="language-txt" data-pre-line-notes="true"&gt;&lt;span class="pre-line"&gt;a&lt;/span&gt;
+&lt;span class="pre-line pre-line-has-end-note" data-pre-line-note-from="2" data-pre-line-note-to="2"&gt;&lt;span class="pre-line-content" style="anchor-name:--pre-line-note-2;" aria-describedby="sample-line-note-4-2"&gt;b&lt;/span&gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;div class="pre-line-note-layer"&gt;&lt;div id="sample-line-note-4-2" class="pre-line-note" role="note" data-pre-line-note-from="2" data-pre-line-note-to="2" style="position-anchor:--pre-line-note-2; --line-note-width:10rem;"&gt;This note is intentionally long so you can see how width tuning and wrapping behave in the inline note column.&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;</code></pre>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Alias on samp (fallback)</h2>
+      <div class="sample-grid">
+        <article class="panel source">
+          <h3>Markdown</h3>
+          <pre><code>```samp
+$ pwd
+/home/user
+```
+```notes
+1：
+  command
+  shell builtin
+2：output
+```</code></pre>
+        </article>
+        <article class="panel preview">
+          <h3>Preview</h3>
+          <div class="preview-scroller">
+            <div class="pre-wrapper-line-notes"><pre><samp data-pre-line-notes="true"><span class="pre-line pre-line-has-end-note" data-pre-line-note-from="1" data-pre-line-note-to="1"><span class="pre-line-content" style="anchor-name:--pre-line-note-1;" aria-describedby="sample-line-note-5-1">$ pwd</span></span>
+<span class="pre-line pre-line-has-end-note" data-pre-line-note-from="2" data-pre-line-note-to="2"><span class="pre-line-content" style="anchor-name:--pre-line-note-2;" aria-describedby="sample-line-note-5-2">/home/user</span></span>
+</samp></pre><div class="pre-line-note-layer"><div id="sample-line-note-5-1" class="pre-line-note" role="note" data-pre-line-note-from="1" data-pre-line-note-to="1" data-pre-line-note-label="1" style="position-anchor:--pre-line-note-1;">command
+shell builtin</div><div id="sample-line-note-5-2" class="pre-line-note" role="note" data-pre-line-note-from="2" data-pre-line-note-to="2" data-pre-line-note-label="2" style="position-anchor:--pre-line-note-2;">output</div></div></div>
+          </div>
+        </article>
+        <article class="panel source">
+          <h3>HTML</h3>
+          <pre><code>&lt;div class="pre-wrapper-line-notes"&gt;&lt;pre&gt;&lt;samp data-pre-line-notes="true"&gt;&lt;span class="pre-line pre-line-has-end-note" data-pre-line-note-from="1" data-pre-line-note-to="1"&gt;&lt;span class="pre-line-content" style="anchor-name:--pre-line-note-1;" aria-describedby="sample-line-note-5-1"&gt;$ pwd&lt;/span&gt;&lt;/span&gt;
+&lt;span class="pre-line pre-line-has-end-note" data-pre-line-note-from="2" data-pre-line-note-to="2"&gt;&lt;span class="pre-line-content" style="anchor-name:--pre-line-note-2;" aria-describedby="sample-line-note-5-2"&gt;/home/user&lt;/span&gt;&lt;/span&gt;
+&lt;/samp&gt;&lt;/pre&gt;&lt;div class="pre-line-note-layer"&gt;&lt;div id="sample-line-note-5-1" class="pre-line-note" role="note" data-pre-line-note-from="1" data-pre-line-note-to="1" data-pre-line-note-label="1" style="position-anchor:--pre-line-note-1;"&gt;command
+shell builtin&lt;/div&gt;&lt;div id="sample-line-note-5-2" class="pre-line-note" role="note" data-pre-line-note-from="2" data-pre-line-note-to="2" data-pre-line-note-label="2" style="position-anchor:--pre-line-note-2;"&gt;output&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;</code></pre>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

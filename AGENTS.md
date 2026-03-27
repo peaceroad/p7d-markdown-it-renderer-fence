@@ -9,6 +9,7 @@ Architecture:
 - `src/entry/markup-highlight.js` is markup-only entry (does not import custom-highlight runtime/provider code).
 - `src/entry/custom-highlight.js` is custom-highlight mode entry (re-exports runtime/payload helpers).
 - `src/fence/render-shared.js` contains shared fence normalization/line-splitting/timing helpers.
+- `src/fence/line-notes.js` contains immediate sidecar `line-notes` / `notes` fence folding helpers.
 - `src/fence/render-markup.js` contains markup rendering path.
 - `src/fence/render-api.js` is API-mode plugin entry/orchestrator.
 - `src/fence/render-api-provider.js` contains provider normalization + payload generation helpers.
@@ -17,11 +18,13 @@ Architecture:
 
 Plugin flow:
 1. Parse fence info string and attrs (`{...}`) and merge into token attrs.
+1.5. Fold an immediate following `line-notes` fence (`notes` alias) into the previous code/samp fence token meta.
 2. Normalize attrs:
    - Add language class (`langPrefix + lang`) unless `samp`.
    - Normalize `start`/`pre-start`/`line-number-start` -> `data-pre-start` and append counter-set style.
    - Normalize `line-number-skip` -> `data-pre-line-number-skip`.
    - Normalize `line-number-set` -> `data-pre-line-number-set`.
+   - Forward sidecar line notes from token meta and mark note-enabled blocks with `data-pre-line-notes="true"`.
    - Normalize `em-lines`/`emphasize-lines` -> `data-pre-emphasis`.
    - Normalize `wrap`/`pre-wrap` -> `data-pre-wrap` + optional inline `preWrapStyle`.
    - Normalize `comment-mark` -> `data-pre-comment-mark` for comment markers.
@@ -39,11 +42,11 @@ Plugin flow:
    - If `useHighlightPre` is true and parsing fails but `<pre>` exists, passthrough the highlight output as-is.
 5. Apply line features:
    - In markup mode: only when not in highlight-pre passthrough.
-   - In api mode: line features are represented as payload ranges (`em-lines`, `comment-mark`), and optional structural spans are controlled by `customHighlight.lineFeatureStrategy`.
-   - `setLineNumber`, `line-number-skip`, `line-number-set`, `setEmphasizeLines`, `lineEndSpanThreshold`, `comment-mark`.
+   - In api mode: payload-backed line features are `em-lines` / `comment-mark`; structural line wrappers (`line-number-*`, `line-notes`) are controlled by `customHighlight.lineFeatureStrategy`.
+   - `setLineNumber`, `line-number-skip`, `line-number-set`, `setEmphasizeLines`, `lineEndSpanThreshold`, `comment-mark`, `line-notes`.
    - Uses `splitFenceBlockToLines` to wrap lines and preserve tag balance (line split path is LF/CRLF-oriented; markdown-it fence content is LF-normalized).
    - `comment-mark` pre-scan is intentionally deferred until after `useHighlightPre` decision.
-   - If highlighted output line count does not match source logical line count, `comment-mark`, `line-number-skip`, and `line-number-set` are skipped to avoid wrong mapping.
+   - If highlighted output line count does not match source logical line count, `comment-mark`, `line-number-skip`, `line-number-set`, and `line-notes` are skipped to avoid wrong mapping.
 6. Render final `<pre><code|samp>` with ordered attrs.
 
 ## Options and compatibility notes
@@ -87,7 +90,7 @@ Plugin flow:
   - when `customHighlight.highlighter` exists, Shiki internal loaded-language aliases are used first.
   - no hardcoded fallback aliases are applied by default.
 - `customHighlight` options now go through strict validation + normalization helper (`src/custom-highlight/option-validator.js`).
-  - invalid/unknown keys are normalized as before and emit warn-once diagnostics in `NODE_ENV=development`.
+  - invalid known enum-like values and unknown keys are normalized as before and emit warn-once diagnostics in `NODE_ENV=development`.
 - keyword-mode の既定分類は `src/custom-highlight/shiki-keyword.js` を公開入口に統一。
   - `buildShikiKeywordContext()` を共有し、base 判定と rule 判定で scope/token の再計算をしない。
   - `classifyShikiScopeKeywordBaseFromContext()` で base bucket を算出し、`src/custom-highlight/shiki-keyword-rules.js` の rule で後処理（legacy + v4）を適用。
@@ -113,6 +116,7 @@ Plugin flow:
 - Runtime version policy options:
   - `{ strictVersion: true }` accepts only `v: 1`
   - `{ supportedVersion }` / `{ supportedVersions }` allows custom accepted payload versions.
+  - when `strictVersion` is `true`, it takes precedence and custom accepted versions are ignored.
   - Payload `v` is transport schema version (independent from npm package version); package metadata mirrors this in `package.json > customHighlightPayload`.
   - `v` is shared across providers by design (`engine` is provenance; runtime consumes one normalized payload shape).
 - `useHighlightPre` keeps highlight-provided `<pre><code>` and disables line-splitting features; `<samp>` conversion is not possible in this mode.
@@ -122,10 +126,25 @@ Plugin flow:
 - `line-number-reset` was removed; conflicting old attrs are dropped during normalization rather than treated as aliases.
 - `setPreWrapStyle` controls inline style output for pre-wrap; data-pre-wrap is still added.
 - `comment-mark` applies to code blocks and relies on line splitting.
+- Sidecar line notes use a separate immediate fence:
+  - canonical: `line-notes`
+  - alias: `notes`
+  - immediate folding is fail-closed; if any non-empty line is malformed, a note entry is incomplete, or the same note start line appears twice, the fence remains a normal literal code block
+  - syntax: `N: text`, `N-M: text`, `N：text`, `N-M：text`
+  - per-note attrs can be appended in markdown-it-attrs style on the header line for single-line notes, e.g. `5: cache lookup key {width="8rem"}`
+  - multiline notes may instead use an attrs-only continuation line, e.g. `  {width="11rem"}`, so note text stays separate from metadata
+  - indented continuation lines append multiline note text to the previous note
+  - note text stays outside `<code>/<samp>` to keep copy semantics cleaner than in-code note spans
+  - rendered HTML keeps note text outside `<code>/<samp>` in a sibling `pre-line-note-layer`; anchor lines carry `pre-line-has-end-note` and `data-pre-line-note-from/to`, while the inline `pre-line-content` span carries `anchor-name` plus `aria-describedby`, and note items render with stable `id` + `role="note"`
+  - supported per-note attrs are intentionally narrow for now: `width` only, validated as a simple CSS length (`px` / `em` / `rem` / `ch` / `vw` / `%` ...)
+  - note items render as sibling `.pre-line-note` blocks with `position-anchor`; safe non-overlapping layouts are marked with `data-pre-line-notes-layout="anchor"` for CSS anchor positioning, otherwise CSS may fall back to a below-block list
 - `setEmphasizeLines: false` now skips `em-lines` parsing on the hot path.
 - `line-number-skip` / `line-number-set` values are forwarded during attr normalization and parsed lazily only when line-number rendering needs them.
+- `line-notes` are folded in a core rule after block parse; output HTML is merged into the previous fence wrapper rather than emitted as a second standalone block, and the previous fence token `map` is extended to cover the absorbed sidecar fence lines.
+- `line-notes` render structurally in markup mode and in API mode when `customHighlight.lineFeatureStrategy !== 'disable'`.
 - `em-lines` parser accepts open-ended ranges (`3-`, `-2`) and normalizes reversed ranges (`5-3` -> `3-5`).
 - `comment-mark` scanning is skipped when `useHighlightPre` passthrough is active.
+- `line-notes` are skipped when `useHighlightPre` passthrough is active.
 - `start` / `line-number-start` line numbering is activated only for non-negative safe integers (`0` is allowed); invalid/empty values keep `data-pre-start` but do not enable counter style or line-number wrapping. When active, emitted `counter-set` uses the displayed start value and relies on the CSS contract that increments in `span.pre-line::after`.
 - Logical line counting for mismatch guards accepts CRLF/LF/CR, is shared for source and highlighted content, and is computed lazily only when advanced line-number controls, emphasis normalization, or comment-mark guards need it.
 - markdown-it fence `token.content` is effectively LF-normalized; mismatch guard mainly protects against highlighter-side newline transformation.
@@ -151,7 +170,7 @@ Plugin flow:
   - `custom-highlight-runtime-reapply` (SPA-style re-render + external re-apply trigger)
   - `custom-highlight-runtime-inline-script` (inline payload script parsing path)
   - `custom-highlight-runtime-incremental-skip` (incremental no-op path for unchanged DOM/payload)
-  - `custom-highlight-runtime-version-policy` (strict/custom payload version acceptance)
+  - `custom-highlight-runtime-version-policy` (strict/custom payload version acceptance, including strict precedence over `supportedVersion(s)`)
   - `custom-highlight-runtime-incremental-partial-reuse` (incremental partial path: unchanged block range reuse)
   - `custom-highlight-runtime-incremental-scope-diff-update` (incremental scope diff: changed scope set / removed scope delete only)
   - `custom-highlight-runtime-diagnostics-hook` (runtime skip/invalid diagnostics callback)
@@ -167,7 +186,7 @@ Plugin flow:
   - `custom-highlight-payload-helper` (env payload script rendering path)
   - `custom-highlight-payload-schema-version` (payload `v` follows exported schema constant contract)
   - `custom-highlight-env-reuse-reset` (same env reused across renders does not accumulate stale payload IDs)
-  - `custom-highlight-option-validation-warn-once` (invalid/unknown customHighlight option diagnostics are warn-once)
+  - `custom-highlight-option-validation-warn-once` (invalid known values and unknown customHighlight option diagnostics are warn-once)
 - provider coverage suite (separate file):
   - fixture: `test/custom-highlight/provider-keyword-fixtures.json`
   - runner: `test/custom-highlight/provider-keyword-coverage.test.js`
@@ -199,10 +218,12 @@ Plugin flow:
 - passthrough test includes wrap + em-lines to verify attribute merging and disabled line-splitting.
 - start-invalid fixture verifies `start=""`, non-numeric, and decimal inputs do not activate line-number processing.
 - advanced line-number fixture (`example-line-number-advanced.txt`) verifies `line-number-start`, `line-number-skip`, `line-number-set`, open-ended skip ranges, overlap invalidation, and canonical `data-pre-*` paths.
+- line-note fixture (`example-line-notes.txt`) verifies immediate sidecar folding, per-note width attrs, `notes` alias, full-width colon parsing, multiline notes, and range-note anchors.
 - comment-mark mismatch fixture (`example-comment-line-mismatch.txt`) verifies comment marking is skipped when highlighted logical line count diverges from source.
 - mixed-newline inline test verifies CRLF/LF mixed markdown still maps line features correctly.
 - mixed-newline case is kept inline in `test/test.js` (not file fixture) to avoid Git line-ending normalization masking the scenario.
 - `test/test.js` includes targeted advanced line-number edge tests for line-count mismatch fallback, `useHighlightPre` disablement, API hybrid output, and tag-bearing highlight HTML.
+- `test/test.js` also includes targeted line-note edge tests for non-adjacent sidecar fences, malformed-sidecar fail-closed behavior, duplicate-start fail-closed behavior, source-map merge, line-count mismatch fallback, `useHighlightPre` disablement, and API hybrid output.
 - `npm test` prints `Passed all test.` only once at the end when all suites succeed.
 
 ## Performance workflow

@@ -16,6 +16,9 @@ import {
   validateCustomHighlightOptions,
 } from '../custom-highlight/option-validator.js'
 import {
+  sanitizeHighlightName,
+} from '../custom-highlight/scope-name.js'
+import {
   commentLineClass,
   normalizeEmphasisRanges,
 } from './render-shared.js'
@@ -31,7 +34,6 @@ import {
 } from './render-api-constants.js'
 
 const highlightNameUnsafeReg = /[^A-Za-z0-9_-]+/g
-const hyphenMultiReg = /-+/g
 
 const defaultCustomHighlightOpt = {
   provider: 'shiki',
@@ -181,16 +183,6 @@ const shouldApplyApiFallbackForReason = (chOpt, reason) => {
   if (!reason) return true
   if (!chOpt || !chOpt._fallbackOnSet) return true
   return chOpt._fallbackOnSet.has(reason)
-}
-
-const sanitizeHighlightName = (name, prefix = '') => {
-  const prefixBase = String(prefix == null ? '' : prefix).replace(highlightNameUnsafeReg, '-').replace(hyphenMultiReg, '-').replace(/^-+|-+$/g, '')
-  const raw = String(name || '')
-  let safe = raw.replace(highlightNameUnsafeReg, '-').replace(hyphenMultiReg, '-').replace(/^-+|-+$/g, '')
-  if (!safe) safe = 'scope'
-  if (/^[0-9]/.test(safe)) safe = 'x-' + safe
-  if (safe.startsWith('--')) safe = safe.slice(2) || 'scope'
-  return prefixBase ? `${prefixBase}-${safe}` : safe
 }
 
 const uniqueHighlightName = (base, usedMap) => {
@@ -805,6 +797,5 @@ export {
   normalizeCustomHighlightOpt,
   renderCustomHighlightPayloadScript,
   renderCustomHighlightScopeStyleTag,
-  sanitizeHighlightName,
   shouldApplyApiFallbackForReason,
 }

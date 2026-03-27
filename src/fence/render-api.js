@@ -8,6 +8,9 @@ import {
   prepareFenceRenderContext,
 } from './render-shared.js'
 import {
+  installLineNotesCoreRule,
+} from './line-notes.js'
+import {
   customHighlightDataEnvKey,
   customHighlightEnvInitRuleName,
   customHighlightPayloadSchemaVersion,
@@ -73,6 +76,7 @@ const mditRendererFenceCustomHighlight = (md, option) => {
   }
 
   finalizeCommonFenceOption(opt)
+  installLineNotesCoreRule(md)
 
   md.core.ruler.before('block', customHighlightEnvInitRuleName, (state) => {
     const env = state && state.env

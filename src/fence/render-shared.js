@@ -4,19 +4,35 @@ import {
   getInfoAttr,
   getLangFromClassAttr,
 } from '../utils/attr-utils.js'
+import {
+  getTokenLineNotes,
+} from './line-notes.js'
 
 const infoReg = /^([^{\s]*)(?:\s*\{(.*)\})?$/
 const tagReg = /<\/?([A-Za-z][A-Za-z0-9-]*)(?:\s+[^>]*?)?\/?\s*>/g
 const preLineTag = '<span class="pre-line">'
 const preLineNoNumberClass = 'pre-line-no-number'
+const preLineHasEndNoteClass = 'pre-line-has-end-note'
+const preLineContentClass = 'pre-line-content'
 const emphOpenTag = '<span class="pre-lines-emphasis">'
 const commentLineClass = 'pre-line-comment'
+const preWithLineNotesClass = 'pre-wrapper-line-notes'
+const lineNoteLayerClass = 'pre-line-note-layer'
+const lineNoteClass = 'pre-line-note'
 const closeTag = '</span>'
 const closeTagLen = closeTag.length
+const defaultPreLineTags = { open: preLineTag, close: closeTag }
 const preWrapStyle = 'white-space: pre-wrap; overflow-wrap: anywhere;'
 const voidTags = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'])
 const nonNegativeIntReg = /^\d+$/
 const positiveIntReg = /^[1-9]\d*$/
+
+const getLineNoteIdPrefix = (token, idx) => {
+  const tokenMap = token && Array.isArray(token.map) ? token.map : null
+  const mapStart = tokenMap && Number.isSafeInteger(tokenMap[0]) ? tokenMap[0] + 1 : 0
+  const tokenIndex = Number.isSafeInteger(idx) ? idx + 1 : 0
+  return `pre-line-note-${mapStart}-${tokenIndex}`
+}
 
 const getLineVisualLengthIgnoringTags = (line, threshold) => {
   let len = 0
@@ -89,6 +105,7 @@ const createCommonFenceOptionDefaults = (md) => {
 const finalizeCommonFenceOption = (opt) => {
   opt._sampReg = new RegExp('^(?:samp|' + opt.sampLang.split(',').join('|') + ')$')
   opt._attrOrderIndex = createAttrOrderIndexGetter(opt.attrsOrder || [])
+  opt._attrOrderRankCache = new Map()
   return opt
 }
 
@@ -113,6 +130,13 @@ const parsePositiveLineIndex = (val) => {
   const num = Number(str)
   if (!Number.isSafeInteger(num) || num <= 0) return null
   return num
+}
+
+const escapeHtmlText = (value) => {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
 }
 
 const getLogicalLineCount = (text) => {
@@ -254,22 +278,106 @@ const resolveAdvancedLineNumberPlan = (lineNumberSkipValue, lineNumberSetValue, 
   return buildAdvancedLineNumberPlan(skipRanges, setEntries, sourceLineCount)
 }
 
-const getPreLineOpenTag = (lineNumberPlan, lineIndex) => {
-  if (!lineNumberPlan) return preLineTag
-  const hidden = !!(lineNumberPlan.hidden && lineNumberPlan.hidden[lineIndex])
-  const setNumber = lineNumberPlan.sets ? lineNumberPlan.sets[lineIndex] : undefined
-  if (!hidden && setNumber == null) return preLineTag
-  let tag = '<span class="pre-line'
-  if (hidden) tag += ' ' + preLineNoNumberClass
-  tag += '"'
-  if (setNumber != null) tag += ` style="counter-set:pre-line-number ${setNumber};"`
-  return tag + '>'
+const createLineNotePlan = (lineNotes, maxLine, idPrefix) => {
+  if (!Array.isArray(lineNotes) || !lineNotes.length || maxLine <= 0) return null
+  const anchors = []
+  const items = []
+  const noteIdPrefix = String(idPrefix || 'pre-line-note')
+  let prevFrom = 0
+  let prevTo = 0
+  let needsSort = false
+  for (let i = 0; i < lineNotes.length; i++) {
+    const note = lineNotes[i]
+    if (!note || !Number.isSafeInteger(note.from) || !Number.isSafeInteger(note.to)) continue
+    let from = note.from
+    let to = note.to
+    if (from > to) {
+      const swap = from
+      from = to
+      to = swap
+    }
+    if (to < 1 || from > maxLine) continue
+    if (from < 1) from = 1
+    if (to > maxLine) to = maxLine
+    if (anchors[from - 1] !== undefined) return null
+    const lineCount = Number.isSafeInteger(note.lineCount) && note.lineCount > 0
+      ? note.lineCount
+      : Math.max(getLogicalLineCount(note.text), 1)
+    const item = {
+      from,
+      to,
+      label: from === to ? String(from) : `${from}-${to}`,
+      html: escapeHtmlText(note.text),
+      anchorName: `--pre-line-note-${from}`,
+      id: `${noteIdPrefix}-${from}`,
+      lineCount,
+      width: note.width || '',
+    }
+    anchors[from - 1] = item
+    items.push(item)
+    if (!needsSort && items.length > 1 && (from < prevFrom || (from === prevFrom && to < prevTo))) {
+      needsSort = true
+    }
+    prevFrom = from
+    prevTo = to
+  }
+  if (!items.length) return null
+
+  if (needsSort) items.sort((a, b) => a.from - b.from || a.to - b.to)
+  let canAnchor = true
+  let previousVisualEnd = 0
+  let overflowLines = 0
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    const visualEnd = item.from + item.lineCount - 1
+    if (item.from <= previousVisualEnd) canAnchor = false
+    if (visualEnd > maxLine) overflowLines = Math.max(overflowLines, visualEnd - maxLine)
+    previousVisualEnd = visualEnd
+  }
+
+  return {
+    anchors,
+    items,
+    canAnchor,
+    overflowLines,
+  }
 }
 
-const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmphasis, needEndSpan, threshold, lineEndSpanClass, br, commentLines, commentClass, lineNumberPlan) => {
+const resolveLineNotesPlan = (lineNotes, sourceLineCount, renderedLineCount, idPrefix) => {
+  if (!Array.isArray(lineNotes) || !lineNotes.length) return null
+  if (!Number.isSafeInteger(sourceLineCount) || sourceLineCount <= 0) return null
+  if (sourceLineCount !== renderedLineCount) return null
+  return createLineNotePlan(lineNotes, sourceLineCount, idPrefix)
+}
+
+const buildPreLineTags = (hidden, setNumber, lineNote) => {
+  if (!hidden && setNumber == null && !lineNote) return defaultPreLineTags
+  let tag = '<span class="pre-line'
+  if (hidden) tag += ' ' + preLineNoNumberClass
+  if (lineNote) tag += ' ' + preLineHasEndNoteClass
+  tag += '"'
+  if (setNumber != null) tag += ` style="counter-set:pre-line-number ${setNumber};"`
+  if (lineNote) {
+    tag += ` data-pre-line-note-from="${lineNote.from}"`
+    tag += ` data-pre-line-note-to="${lineNote.to}"`
+  }
+  tag += '>'
+  if (!lineNote) return { open: tag, close: closeTag }
+  const describedByAttr = lineNote.id ? ` aria-describedby="${lineNote.id}"` : ''
+  return {
+    open: `${tag}<span class="${preLineContentClass}" style="anchor-name:${lineNote.anchorName};"${describedByAttr}>`,
+    close: `${closeTag}${closeTag}`,
+  }
+}
+
+const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmphasis, needEndSpan, threshold, lineEndSpanClass, br, commentLines, commentClass, lineNumberPlan, lineNotePlan) => {
   const lines = content.split(br)
   const max = lines.length
-  const hasDynamicLineNumberPlan = !!lineNumberPlan
+  const lineNumberHidden = lineNumberPlan ? lineNumberPlan.hidden : null
+  const lineNumberSets = lineNumberPlan ? lineNumberPlan.sets : null
+  const lineNoteAnchors = lineNotePlan ? lineNotePlan.anchors : null
+  const hasLineNotes = !!lineNoteAnchors
+  const needLineWrap = needLineNumber || hasLineNotes
   let emIdx = 0
   let emStart = -1
   let emEnd = -1
@@ -286,6 +394,9 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
     let line = lines[n]
     const notLastLine = n < max - 1
     const doComment = commentLines && commentLines[n]
+    const hidden = !!(lineNumberHidden && lineNumberHidden[n])
+    const setNumber = lineNumberSets ? lineNumberSets[n] : undefined
+    const lineNote = hasLineNotes ? lineNoteAnchors[n] : null
     let hasLt = false
     let hasLtChecked = false
 
@@ -309,7 +420,7 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
       }
     }
 
-    if (needLineNumber && notLastLine) {
+    if (needLineWrap && notLastLine) {
       if (!hasLtChecked) {
         hasLt = line.indexOf('<') !== -1
         hasLtChecked = true
@@ -339,8 +450,9 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
       line = `<span class="${commentClass}">` + line + closeTag
     }
 
-    if (needLineNumber && notLastLine) {
-      line = (hasDynamicLineNumberPlan ? getPreLineOpenTag(lineNumberPlan, n) : preLineTag) + line + closeTag
+    if (needLineWrap && notLastLine) {
+      const lineTags = buildPreLineTags(hidden, setNumber, lineNote)
+      line = lineTags.open + line + lineTags.close
     }
 
     if (needEmphasis && emIdx < emphasizeLines.length && emStart === n + 1) {
@@ -359,10 +471,33 @@ const splitFenceBlockToLines = (content, emphasizeLines, needLineNumber, needEmp
   return lines.join(br)
 }
 
+const renderLineNotesLayer = (lineNotePlan) => {
+  const items = lineNotePlan && lineNotePlan.items
+  if (!items || !items.length) return ''
+  let html = `<div class="${lineNoteLayerClass}">`
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    let style = `position-anchor:${item.anchorName};`
+    if (item.width) style += ` --line-note-width:${item.width};`
+    html += `<div id="${item.id}" class="${lineNoteClass}" role="note" data-pre-line-note-from="${item.from}" data-pre-line-note-to="${item.to}" data-pre-line-note-label="${item.label}" style="${style}">${item.html}</div>`
+  }
+  html += '</div>'
+  return html
+}
+
+const wrapFencePreWithLineNotes = (preHtml, lineNotePlan) => {
+  const items = lineNotePlan && lineNotePlan.items
+  if (!items || !items.length) return preHtml + '\n'
+  let attrs = ` class="${preWithLineNotesClass}"`
+  if (lineNotePlan.canAnchor) attrs += ' data-pre-line-notes-layout="anchor"'
+  if (lineNotePlan.overflowLines > 0) attrs += ` style="--pre-line-note-overflow-lines:${lineNotePlan.overflowLines};"`
+  return `<div${attrs}>${preHtml}${renderLineNotesLayer(lineNotePlan)}</div>\n`
+}
+
 const orderTokenAttrs = (token, opt) => {
   const attrs = token.attrs
   if (!attrs || attrs.length < 2) return
-  const rankCache = new Map()
+  const rankCache = opt._attrOrderRankCache || new Map()
   const getRank = (name) => {
     let rank = rankCache.get(name)
     if (rank === undefined) {
@@ -402,6 +537,8 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
   let wrapEnabled = false
   let preWrapValue
   let commentMarkValue
+  const lineNotes = getTokenLineNotes(token)
+  const lineNoteIdPrefix = lineNotes && lineNotes.length ? getLineNoteIdPrefix(token, idx) : ''
   const attrNormalizeStartedAt = timingEnabled ? getNowMs() : 0
 
   if (token.attrs) {
@@ -557,6 +694,7 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
   }
 
   if (timingEnabled) addTimingMs(timings, 'attrNormalizeMs', getNowMs() - attrNormalizeStartedAt)
+  if (lineNotes && lineNotes.length) token.attrSet('data-pre-line-notes', 'true')
 
   return {
     token,
@@ -568,6 +706,8 @@ const prepareFenceRenderContext = (tokens, idx, opt) => {
     wrapEnabled,
     preWrapValue,
     commentMarkValue,
+    lineNotes,
+    lineNoteIdPrefix,
     timingEnabled,
     timings,
     fenceStartedAt,
@@ -590,5 +730,7 @@ export {
   preWrapStyle,
   prepareFenceRenderContext,
   resolveAdvancedLineNumberPlan,
+  resolveLineNotesPlan,
   splitFenceBlockToLines,
+  wrapFencePreWithLineNotes,
 }

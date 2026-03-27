@@ -6,6 +6,7 @@ import mditAttrs from 'markdown-it-attrs'
 import { createHighlighter } from 'shiki'
 
 import mditRendererFence from '../../index.js'
+import { prewarmShikiHighlighter } from './shiki-prewarm.js'
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname)
 const isWindows = process.platform === 'win32'
@@ -52,6 +53,7 @@ const shikiHighlighter = await createHighlighter({
   themes: ['github-light'],
   langs,
 })
+prewarmShikiHighlighter(shikiHighlighter, fixtures, 'github-light', { includeExplanation: true })
 
 const createMd = (shikiScopeMode, includeScopeStyles) => {
   return mdit({ html: true, langPrefix: 'language-' })

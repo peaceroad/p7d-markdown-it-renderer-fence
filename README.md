@@ -120,6 +120,7 @@ Note:
 - optional line-end spacer via `lineEndSpanThreshold`.
 - optional pre-wrap support via `wrap` / `pre-wrap`.
 - comment line markers via `comment-mark`.
+- sidecar line notes via immediate `line-notes` fence (`notes` alias).
 
 ### Fence Attribute Examples
 
@@ -229,6 +230,25 @@ echo 1
 </samp></pre>
 ```
 
+Line notes:
+
+~~~md
+```js {start="5"}
+const a = 1
+console.log(a)
+```
+```line-notes
+1: setup {width="7em"}
+2：result {width="10em"}
+```
+~~~
+
+```html
+<div class="pre-wrapper-line-notes" data-pre-line-notes-layout="anchor"><pre><code class="language-js" data-pre-start="5" data-pre-line-notes="true" style="counter-set:pre-line-number 5;"><span class="pre-line pre-line-has-end-note" data-pre-line-note-from="1" data-pre-line-note-to="1"><span class="pre-line-content" style="anchor-name:--pre-line-note-1;" aria-describedby="pre-line-note-1-1-1">const a = 1</span></span>
+<span class="pre-line pre-line-has-end-note" data-pre-line-note-from="2" data-pre-line-note-to="2"><span class="pre-line-content" style="anchor-name:--pre-line-note-2;" aria-describedby="pre-line-note-1-1-2">console.log(a)</span></span>
+</code></pre><div class="pre-line-note-layer"><div id="pre-line-note-1-1-1" class="pre-line-note" role="note" data-pre-line-note-from="1" data-pre-line-note-to="1" data-pre-line-note-label="1" style="position-anchor:--pre-line-note-1; --line-note-width:7em;">setup</div><div id="pre-line-note-1-1-2" class="pre-line-note" role="note" data-pre-line-note-from="2" data-pre-line-note-to="2" data-pre-line-note-label="2" style="position-anchor:--pre-line-note-2; --line-note-width:10em;">result</div></div></div>
+```
+
 ### Markup Notes
 
 - `useHighlightPre: true` keeps highlighter-provided `<pre><code>` when present.
@@ -239,6 +259,7 @@ echo 1
   - `em-lines`
   - line-end spacer
   - `comment-mark`
+  - `line-notes`
   - `samp` conversion
 
 Reference line-number CSS contract:
@@ -268,6 +289,8 @@ Recommended display CSS:
 
 - See [`example/line-number.css`](./example/line-number.css) for the full reference stylesheet.
 - See [`example/line-number-sample.html`](./example/line-number-sample.html) for Markdown / Preview / HTML side-by-side examples.
+- See [`example/line-notes.css`](./example/line-notes.css) for the companion line-note stylesheet.
+- See [`example/line-notes-sample.html`](./example/line-notes-sample.html) for sidecar line-note examples.
 
 Note:
 
@@ -306,6 +329,25 @@ Line-number attr syntax note:
 - `line-number-set` uses `line:number` pairs (for example `6:136,14:220`).
 - `line-number-skip` and `line-number-set` must not target the same source line. If they overlap, the skipped line stays blank and the conflicting `line-number-set` entry is ignored.
 - `line-number-skip` / `line-number-set` are applied only when source and highlighted logical line counts match; otherwise renderer falls back to plain sequential numbering.
+
+Line-note syntax note:
+
+- `line-notes` is the canonical sidecar fence name; `notes` is a short alias.
+- Sidecar notes are folded only when they immediately follow a code/samp fence.
+- Immediate sidecar folding is fail-closed: if any non-empty line is malformed, a note entry is incomplete, or the same note start line appears twice, the `line-notes` fence stays as a normal literal fence block.
+- Syntax supports `N: text`, `N-M: text`, `N：text`, and `N-M：text`.
+- Per-note attrs can be appended in markdown-it-attrs style on the same line for single-line notes, for example `5: cache lookup key {width="8rem"}`.
+- For multiline notes, prefer a trailing attrs-only continuation line, for example `  {width="11rem"}`.
+- Continuation lines start with indentation (`  ` or tab) and append multiline note text to the previous note.
+- Output keeps note text outside `<code>/<samp>` in a sibling note layer for safer copy semantics.
+- Line-note blocks use the external wrapper contract `pre-wrapper-line-notes`.
+- `data-pre-line-notes-layout="anchor"` is added only for simple non-overlapping note layouts. The current check is intentionally lightweight: it uses the note start line plus the note text's explicit logical line count, so a two-line note starting at line `3` prevents another anchored note from starting at line `4`.
+- This anchor-safety check does not measure CSS wrapping. If a note wraps because of narrow CSS width, consumer CSS should still be prepared to fall back to a below-block list.
+- When anchor positioning is unavailable or the layout is not marked safe, consumer CSS should render notes as a below-block list. The reference stylesheet uses `data-pre-line-note-label` so the fallback still shows which source line each note belongs to.
+- In anchor layouts, the rendered line HTML carries note metadata on `.pre-line`, and the anchor itself is attached to `.pre-line-content` so notes can start from the rendered code end.
+- Accessibility contract: the rendered `.pre-line-content` carries `aria-describedby`, and each note item renders with a stable `id` plus `role="note"`, so assistive tech can associate the note text with its anchor line.
+- When a sidecar fence is folded, the previous fence token `map` is extended to cover the absorbed note-fence lines so editor scroll/jump integrations can still treat the merged output as one source span.
+- `line-notes` are applied only when source and highlighted logical line counts match; otherwise note markup is skipped.
 
 Migration note (`0.5.0`):
 
@@ -537,6 +579,7 @@ Then include that bridge in generated HTML:
 - `customHighlight.idPrefix` (default: `'hl-'`): generated per-block payload id prefix.
 - `customHighlight.scopePrefix` (default: `'hl'`): scope name prefix used for highlight registration.
 - `customHighlight.lineFeatureStrategy` (`'hybrid' | 'disable'`, default: `'hybrid'`): keep or disable line-span features in API rendering.
+- In `NODE_ENV=development`, invalid known enum-like values and unknown `customHighlight` keys emit warn-once diagnostics while keeping normalized fallback behavior.
 
 ### API Helper Exports
 
@@ -550,11 +593,19 @@ Then include that bridge in generated HTML:
 - `customHighlightPayloadSchemaVersion`
 - `customHighlightPayloadSupportedVersions`
 
+### Runtime Version Policy
+
+- `applyCustomHighlights(..., { strictVersion: true })` accepts only `customHighlightPayloadSupportedVersions` (currently `v:1`).
+- `supportedVersion` / `supportedVersions` allow explicit accepted payload versions.
+- If `strictVersion` is `true`, it takes precedence and custom accepted versions are ignored.
+
 ## Docs and Examples
 
 - API styling guide: `docs/custom-highlight-styling-guide.md`
 - default preset CSS sample: `docs/default-highlight-theme.css`
 - provider matrix page: `example/custom-highlight-provider-matrix.html`
+- line-number sample: `example/line-number-sample.html`
+- line-notes sample: `example/line-notes-sample.html`
 
 ## Tests and Benchmarks
 

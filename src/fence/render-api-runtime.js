@@ -5,6 +5,9 @@ import {
   styleToHighlightCss,
 } from '../custom-highlight/runtime-utils.js'
 import {
+  sanitizeHighlightName,
+} from '../custom-highlight/scope-name.js'
+import {
   customHighlightAppliedAttr,
   customHighlightAppliedSelector,
   customHighlightCodeSelector,
@@ -19,17 +22,6 @@ const globalRuntimeInsertedScopeStyles = new Map()
 const runtimeInsertedScopeStylesByDoc = new WeakMap()
 const runtimeApplyStateByRoot = new WeakMap()
 const validColorSchemeSet = new Set(['light', 'dark', 'auto'])
-const highlightNameUnsafeReg = /[^A-Za-z0-9_-]+/g
-const hyphenMultiReg = /-+/g
-
-const sanitizeHighlightName = (name) => {
-  const raw = String(name || '')
-  let safe = raw.replace(highlightNameUnsafeReg, '-').replace(hyphenMultiReg, '-').replace(/^-+|-+$/g, '')
-  if (!safe) safe = 'scope'
-  if (/^[0-9]/.test(safe)) safe = 'x-' + safe
-  if (safe.startsWith('--')) safe = safe.slice(2) || 'scope'
-  return safe
-}
 
 const getCustomHighlightBlockId = (node) => {
   if (!node || typeof node.getAttribute !== 'function') return null
@@ -133,10 +125,10 @@ const addMediaQueryChangeListener = (queryList, listener) => {
 }
 
 const getRuntimeSupportedPayloadVersions = (options = {}) => {
-  const set = new Set()
   if (options.strictVersion === true) {
-    for (const v of customHighlightPayloadSupportedVersions) set.add(v)
+    return new Set(customHighlightPayloadSupportedVersions)
   }
+  const set = new Set()
   if (Number.isSafeInteger(options.supportedVersion)) set.add(options.supportedVersion)
   if (Array.isArray(options.supportedVersions)) {
     for (const v of options.supportedVersions) {

@@ -42,6 +42,15 @@ const knownCustomHighlightKeys = new Set([
   'theme',
 ])
 
+const isExactValidOptionValue = (value, validSet) => {
+  return typeof value === 'string' && validSet.has(value)
+}
+
+const isNormalizedValidOptionValue = (value, validSet) => {
+  if (typeof value !== 'string') return false
+  return validSet.has(value.trim().toLowerCase())
+}
+
 const validateCustomHighlightOptions = (rawOpt, normalizedOpt) => {
   if (!rawOpt || typeof rawOpt !== 'object') return
 
@@ -54,31 +63,31 @@ const validateCustomHighlightOptions = (rawOpt, normalizedOpt) => {
     }
   }
 
-  if (rawOpt.provider != null && !validProviderSet.has(normalizedOpt.provider)) {
+  if (rawOpt.provider != null && !isExactValidOptionValue(rawOpt.provider, validProviderSet)) {
     warnOptionIssueOnce(
       'provider',
       `Invalid customHighlight.provider "${String(rawOpt.provider)}". Using "${normalizedOpt.provider}".`,
     )
   }
-  if (rawOpt.fallback != null && !validFallbackSet.has(normalizedOpt.fallback)) {
+  if (rawOpt.fallback != null && !isExactValidOptionValue(rawOpt.fallback, validFallbackSet)) {
     warnOptionIssueOnce(
       'fallback',
       `Invalid customHighlight.fallback "${String(rawOpt.fallback)}". Using "${normalizedOpt.fallback}".`,
     )
   }
-  if (rawOpt.transport != null && !validTransportSet.has(normalizedOpt.transport)) {
+  if (rawOpt.transport != null && !isExactValidOptionValue(rawOpt.transport, validTransportSet)) {
     warnOptionIssueOnce(
       'transport',
       `Invalid customHighlight.transport "${String(rawOpt.transport)}". Using "${normalizedOpt.transport}".`,
     )
   }
-  if (rawOpt.lineFeatureStrategy != null && !validLineFeatureStrategySet.has(normalizedOpt.lineFeatureStrategy)) {
+  if (rawOpt.lineFeatureStrategy != null && !isExactValidOptionValue(rawOpt.lineFeatureStrategy, validLineFeatureStrategySet)) {
     warnOptionIssueOnce(
       'line-feature-strategy',
       `Invalid customHighlight.lineFeatureStrategy "${String(rawOpt.lineFeatureStrategy)}". Using "${normalizedOpt.lineFeatureStrategy}".`,
     )
   }
-  if (rawOpt.shikiScopeMode != null && !validShikiScopeModeSet.has(normalizedOpt.shikiScopeMode)) {
+  if (rawOpt.shikiScopeMode != null && !isNormalizedValidOptionValue(rawOpt.shikiScopeMode, validShikiScopeModeSet)) {
     warnOptionIssueOnce(
       'shiki-scope-mode',
       `Invalid customHighlight.shikiScopeMode "${String(rawOpt.shikiScopeMode)}". Using "${normalizedOpt.shikiScopeMode}".`,

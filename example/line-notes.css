@@ -1,0 +1,86 @@
+:root {
+  --line-note-gap: 0.35rem;
+  --line-note-inline-gap: 1.25ch;
+  --line-note-width: 14rem;
+  --line-note-color: #666;
+  --line-note-border-color: #cfcfcf;
+  --line-note-background: rgba(255, 255, 255, 0.72);
+  --line-note-font-family: inherit;
+  --line-note-font-size: inherit;
+  --line-note-line-height: inherit;
+  --line-note-padding-block: 0.05rem;
+  --line-note-padding-inline: 0.4rem;
+  --line-note-radius: 0.25rem;
+  --line-note-label-color: var(--line-note-color);
+  --line-note-anchor-padding-block-end: 1.25em;
+}
+
+.pre-wrapper-line-notes pre {
+  margin-bottom: 0;
+}
+
+.pre-wrapper-line-notes .pre-line-note-layer {
+  display: grid;
+  gap: var(--line-note-gap);
+  margin-top: 0.65rem;
+}
+
+.pre-wrapper-line-notes .pre-line-note {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: start;
+  column-gap: 0.5rem;
+  color: var(--line-note-color);
+  font-family: var(--line-note-font-family);
+  font-size: var(--line-note-font-size);
+  line-height: var(--line-note-line-height);
+  vertical-align: baseline;
+  white-space: pre-wrap;
+  box-sizing: border-box;
+}
+
+.pre-wrapper-line-notes .pre-line-note::before {
+  content: "line " attr(data-pre-line-note-label);
+  display: inline-block;
+  padding: 0.01rem 0.38rem;
+  border: 1px solid var(--line-note-border-color);
+  border-radius: 0.4rem;
+  background: var(--line-note-background);
+  color: var(--line-note-label-color);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pre-wrapper-line-notes .pre-line-content {
+  display: inline-block;
+}
+
+@supports ((anchor-name: --x) and (position-anchor: --x)) {
+  .pre-wrapper-line-notes[data-pre-line-notes-layout="anchor"] {
+    position: relative;
+    anchor-scope: all;
+    padding-block-end: calc(var(--line-note-anchor-padding-block-end) + (var(--pre-line-note-overflow-lines, 0) * 1.5em));
+  }
+
+  .pre-wrapper-line-notes[data-pre-line-notes-layout="anchor"] .pre-line-note-layer {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .pre-wrapper-line-notes[data-pre-line-notes-layout="anchor"] .pre-line-note {
+    display: block;
+    position: absolute;
+    inset-block-start: anchor(top);
+    inset-inline-start: calc(anchor(right) + var(--line-note-inline-gap));
+    inline-size: clamp(0px, calc(100% - anchor(right) - var(--line-note-inline-gap)), var(--line-note-width));
+    padding: var(--line-note-padding-block) var(--line-note-padding-inline);
+    border: 1px solid var(--line-note-border-color);
+    border-radius: var(--line-note-radius);
+    background: var(--line-note-background);
+  }
+
+  .pre-wrapper-line-notes[data-pre-line-notes-layout="anchor"] .pre-line-note::before {
+    content: none;
+  }
+}

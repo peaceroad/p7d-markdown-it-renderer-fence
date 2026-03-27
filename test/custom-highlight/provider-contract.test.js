@@ -8,11 +8,18 @@ import mditRendererFence, {
   customHighlightPayloadSchemaVersion,
   customHighlightPayloadSupportedVersions,
 } from '../../index.js'
+import { prewarmShikiHighlighter } from './shiki-prewarm.js'
 
 const shikiHighlighter = await createHighlighter({
   themes: ['github-light'],
   langs: ['javascript', 'typescript', 'python', 'json'],
 })
+prewarmShikiHighlighter(shikiHighlighter, [
+  { lang: 'javascript', code: 'const a = 1\nconsole.log(a)\n' },
+  { lang: 'typescript', code: 'type User = { id: number }\nconst u: User = { id: 1 }\n' },
+  { lang: 'python', code: 'def inc(x):\n    return x + 1\n' },
+  { lang: 'json', code: '{ "ok": true, "n": 1 }\n' },
+], 'github-light', { includeExplanation: true })
 
 const createMd = (customHighlight) => {
   return mdit({ html: true, langPrefix: 'language-' })

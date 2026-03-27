@@ -1,0 +1,47 @@
+[Markdown]
+```txt
+a
+b
+```
+```line-notes
+2: second line {width="7em"}
+```
+[HTML]
+<div class="pre-wrapper-line-notes" data-pre-line-notes-layout="anchor"><pre><code class="language-txt" data-pre-line-notes="true"><span class="pre-line">a</span>
+<span class="pre-line pre-line-has-end-note" data-pre-line-note-from="2" data-pre-line-note-to="2"><span class="pre-line-content" style="anchor-name:--pre-line-note-2;" aria-describedby="pre-line-note-1-1-2">b</span></span>
+</code></pre><div class="pre-line-note-layer"><div id="pre-line-note-1-1-2" class="pre-line-note" role="note" data-pre-line-note-from="2" data-pre-line-note-to="2" data-pre-line-note-label="2" style="position-anchor:--pre-line-note-2; --line-note-width:7em;">second line</div></div></div>
+
+[Markdown]
+```samp
+$ pwd
+/home/user
+```
+```notes
+1：
+  command
+  shell builtin
+2：output
+```
+[HTML]
+<div class="pre-wrapper-line-notes"><pre><samp data-pre-line-notes="true"><span class="pre-line pre-line-has-end-note" data-pre-line-note-from="1" data-pre-line-note-to="1"><span class="pre-line-content" style="anchor-name:--pre-line-note-1;" aria-describedby="pre-line-note-1-1-1">$ pwd</span></span>
+<span class="pre-line pre-line-has-end-note" data-pre-line-note-from="2" data-pre-line-note-to="2"><span class="pre-line-content" style="anchor-name:--pre-line-note-2;" aria-describedby="pre-line-note-1-1-2">/home/user</span></span>
+</samp></pre><div class="pre-line-note-layer"><div id="pre-line-note-1-1-1" class="pre-line-note" role="note" data-pre-line-note-from="1" data-pre-line-note-to="1" data-pre-line-note-label="1" style="position-anchor:--pre-line-note-1;">command
+shell builtin</div><div id="pre-line-note-1-1-2" class="pre-line-note" role="note" data-pre-line-note-from="2" data-pre-line-note-to="2" data-pre-line-note-label="2" style="position-anchor:--pre-line-note-2;">output</div></div></div>
+
+[Markdown]
+```txt {start="5"}
+a
+b
+c
+```
+```line-notes
+1-2:
+  setup block
+  {width="11rem"}
+3: result
+```
+[HTML]
+<div class="pre-wrapper-line-notes" data-pre-line-notes-layout="anchor"><pre><code class="language-txt" data-pre-start="5" data-pre-line-notes="true" style="counter-set:pre-line-number 5;"><span class="pre-line pre-line-has-end-note" data-pre-line-note-from="1" data-pre-line-note-to="2"><span class="pre-line-content" style="anchor-name:--pre-line-note-1;" aria-describedby="pre-line-note-1-1-1">a</span></span>
+<span class="pre-line">b</span>
+<span class="pre-line pre-line-has-end-note" data-pre-line-note-from="3" data-pre-line-note-to="3"><span class="pre-line-content" style="anchor-name:--pre-line-note-3;" aria-describedby="pre-line-note-1-1-3">c</span></span>
+</code></pre><div class="pre-line-note-layer"><div id="pre-line-note-1-1-1" class="pre-line-note" role="note" data-pre-line-note-from="1" data-pre-line-note-to="2" data-pre-line-note-label="1-2" style="position-anchor:--pre-line-note-1; --line-note-width:11rem;">setup block</div><div id="pre-line-note-1-1-3" class="pre-line-note" role="note" data-pre-line-note-from="3" data-pre-line-note-to="3" data-pre-line-note-label="3" style="position-anchor:--pre-line-note-3;">result</div></div></div>
